@@ -248,8 +248,13 @@ EOF
 log "build static FreeType $FT_VERSION"
 build_freetype
 hash -r 2>/dev/null || true
-log "freetype-config --libs => $(freetype-config --libs)"
-log "freetype-config --cflags => $(freetype-config --cflags)"
+if [ "$PLATFORM" = "windows-x64" ]; then
+  FTCFG="freetype-config.bat"
+else
+  FTCFG="freetype-config"
+fi
+log "freetype-config --libs => $($FTCFG --libs)"
+log "freetype-config --cflags => $($FTCFG --cflags)"
 
 log "install Perl modules"
 export PERL_MM_USE_DEFAULT=1
@@ -259,13 +264,21 @@ CPANM="$(dirname "$PERL")/cpanm"
 if [ ! -x "$CPANM" ] && [ ! -f "$CPANM.bat" ]; then
   curl -fsSL https://cpanmin.us | "$PERL" - App::cpanminus
 fi
-if [ -x "$CPANM" ]; then
-  "$CPANM" --notest PDF::Builder Devel::CheckLib File::Which
-elif [ -f "$CPANM.bat" ]; then
-  cmd //c "$(native_path "$CPANM.bat")" --notest PDF::Builder Devel::CheckLib File::Which
-else
-  die "cpanm was not installed"
-fi
+cpanm_notest() {
+  if [ -x "$CPANM" ]; then
+    "$CPANM" --notest "$@"
+  elif [ -f "$CPANM.bat" ]; then
+    cmd //c "$(native_path "$CPANM.bat")" --notest "$@"
+  else
+    die "cpanm was not installed"
+  fi
+}
+# One module per invocation. A single cpanm command on Windows can install
+# Font::TTF and then still report that PDF::Builder's dependency is missing.
+for mod in IO::String Font::TTF PDF::Builder Devel::CheckLib File::Which; do
+  log "cpanm $mod"
+  cpanm_notest "$mod"
+done
 
 # Link the static archive by path. macOS ld otherwise prefers a Homebrew
 # libfreetype.dylib, and Devel::CheckLib rejects -Wl flags in --libs.
