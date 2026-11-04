@@ -318,16 +318,21 @@ ft_dir=$(dirname "$ft_dir")
     # Config.pm keeps the C:/strawberry prefix from the portable build.
     prefix=$(native_path "$STAGE/runtime/strawberry")
   fi
-  # Forward slashes only. A backslash prefix would be eaten as
-  # string escapes (\a, \v) inside the replacement.
+  # gmake does not treat a mix of / and \ as one path, and a
+  # backslash prefix is eaten as string escapes inside s///.
   "$PERL" -i.bak -e '
     BEGIN {
       $lib = shift;
       $prefix = shift // "";
     }
     while (<>) {
+      my $nl = chomp;
+      my $cont = s/\\(\s*)\z//;
       s{-lfreetype\b}{$lib}g;
       s{C:[\\/]strawberry}{$prefix}g if $prefix ne "";
+      s{\\}{/}g if $prefix ne "";
+      $_ .= "\\" if $cont;
+      $_ .= "\n" if $nl;
       print;
     }
   ' "$ft_a" "$prefix" Makefile
