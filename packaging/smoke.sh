@@ -36,10 +36,25 @@ else
   mkdir -p "$WORKDIR/extract"
   case "$SRC" in
     *.zip)
-      if [ -x /c/Windows/System32/tar.exe ]; then
-        MSYS_NO_PATHCONV=1 /c/Windows/System32/tar.exe -xf "$(cygpath -m "$SRC")" -C "$(cygpath -m "$WORKDIR/extract")"
+      # Windows tar.exe skips UTF-8 names inside a Python zip and then exits 1.
+      if command -v python >/dev/null 2>&1 || command -v python3 >/dev/null 2>&1; then
+        py=python
+        command -v python >/dev/null 2>&1 || py=python3
+        if command -v cygpath >/dev/null 2>&1; then
+          MSYS_NO_PATHCONV=1 "$py" - "$(cygpath -m "$SRC")" "$(cygpath -m "$WORKDIR/extract")" << 'PY'
+import sys, zipfile
+zipfile.ZipFile(sys.argv[1]).extractall(sys.argv[2])
+PY
+        else
+          "$py" - "$SRC" "$WORKDIR/extract" << 'PY'
+import sys, zipfile
+zipfile.ZipFile(sys.argv[1]).extractall(sys.argv[2])
+PY
+        fi
       elif command -v unzip >/dev/null 2>&1; then
         unzip -q "$SRC" -d "$WORKDIR/extract"
+      elif [ -x /c/Windows/System32/tar.exe ]; then
+        MSYS_NO_PATHCONV=1 /c/Windows/System32/tar.exe -xf "$(cygpath -m "$SRC")" -C "$(cygpath -m "$WORKDIR/extract")"
       else
         tar -xf "$SRC" -C "$WORKDIR/extract"
       fi

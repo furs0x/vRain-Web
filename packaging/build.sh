@@ -432,6 +432,7 @@ rm -rf "$STAGE/runtime/perl/html" "$STAGE/runtime/strawberry/perl/html" 2>/dev/n
 log "copy application files"
 tar -C "$ROOT" -cf - vrain.pl vrain_mr.pl LICENSE web books books_mr canvas fonts db | tar -C "$STAGE" -xf -
 find "$STAGE" -name '*.pdf' -type f -exec rm -f {} +
+find "$STAGE" -name '*.tmp' -type f -exec rm -f {} +
 find "$STAGE" -name '.DS_Store' -type f -exec rm -f {} +
 rm -rf "$STAGE/web/jobs" "$STAGE/books/01/tmp" "$STAGE/books/01/export" "$STAGE/books/01/yin" \
   "$STAGE/books_mr/03" || true
