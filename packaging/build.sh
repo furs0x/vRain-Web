@@ -311,6 +311,18 @@ ft_dir=$(find "$ft_src" -name Makefile.PL -print | head -1)
 ft_dir=$(dirname "$ft_dir")
 (
   cd "$ft_dir"
+  if [ "$PLATFORM" = "windows-x64" ]; then
+    # The runner may already have C:/strawberry. MakeMaker reads that tree,
+    # then asks for headers this portable build does not ship.
+    if [ -e /c/strawberry ]; then
+      log "set aside the runner C:/strawberry"
+      MSYS_NO_PATHCONV=1 cmd //c "if exist C:\\strawberry.host-saved rmdir /S /Q C:\\strawberry.host-saved"
+      MSYS_NO_PATHCONV=1 cmd //c "move C:\\strawberry C:\\strawberry.host-saved"
+    fi
+    log "junction C:/strawberry to the unpacked Perl"
+    MSYS_NO_PATHCONV=1 cmd //c "mklink /J C:\\strawberry $(native_path "$STAGE/runtime/strawberry")"
+    [ -f /c/strawberry/perl/lib/CORE/libperl540.a ] || die "libperl540.a is not visible at C:/strawberry"
+  fi
   "$PERL" Makefile.PL
   ft_a=$(native_path "$FT_LIB")
   prefix=""
