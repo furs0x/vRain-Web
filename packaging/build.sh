@@ -378,7 +378,7 @@ log "verify font engine"
 "$PERL" -MFont::FreeType -e 'my $ft = Font::FreeType->new; my $face = $ft->face($ARGV[0]); my $g = $face->glyph_from_char("\x{6C38}"); die "glyph missing\n" unless $g; print "Font::FreeType ok\n"' \
   "$ROOT/fonts/qiji-combo.ttf"
 
-so=$(find "$STAGE/runtime" -type f \( -name 'FreeType.so' -o -name 'FreeType.bundle' -o -name 'FreeType.dll' -o -name '*.xs.dll' \) | head -1)
+so=$(find "$STAGE/runtime" -type f \( -name 'FreeType.so' -o -name 'FreeType.bundle' -o -name 'FreeType.dll' -o -name 'FreeType.xs.dll' \) | head -1)
 [ -n "$so" ] || die "Font::FreeType shared library was not built"
 log "extension $so"
 case "$PLATFORM" in
@@ -561,7 +561,23 @@ mv "$STAGE" "$ROOT/dist/vRain-Web-$PLATFORM"
 archive_base="vRain-Web-${VERSION}-${PLATFORM}"
 if [ "$PLATFORM" = "windows-x64" ]; then
   rm -f "$ROOT/dist/${archive_base}.zip"
-  win_tar -a -cf "$(native_path "$ROOT/dist/${archive_base}.zip")" -C "$(native_path "$ROOT/dist")" "vRain-Web-$PLATFORM"
+  # System tar.exe segfaults while creating this zip. Python writes it.
+  py=python
+  command -v python >/dev/null 2>&1 || py=python3
+  MSYS_NO_PATHCONV=1 "$py" - \
+    "$(native_path "$ROOT/dist/${archive_base}.zip")" \
+    "$(native_path "$ROOT/dist/vRain-Web-$PLATFORM")" << 'PY'
+import os, sys, zipfile
+dest, src = sys.argv[1], sys.argv[2]
+parent = os.path.dirname(os.path.abspath(src))
+with zipfile.ZipFile(dest, "w", compression=zipfile.ZIP_DEFLATED, allowZip64=True) as zf:
+    for dirpath, dirnames, filenames in os.walk(src):
+        for name in filenames:
+            full = os.path.join(dirpath, name)
+            rel = os.path.relpath(full, parent).replace("\\", "/")
+            zf.write(full, rel)
+print("zipped", dest, flush=True)
+PY
   log "wrote dist/${archive_base}.zip"
 else
   rm -f "$ROOT/dist/${archive_base}.tar.gz"
