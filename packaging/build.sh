@@ -145,14 +145,6 @@ install_strawberry() {
   PERL="$STAGE/runtime/strawberry/perl/bin/perl.exe"
   [ -f "$PERL" ] || die "missing $PERL"
   export PATH="$STAGE/runtime/strawberry/perl/bin:$STAGE/runtime/strawberry/c/bin:$PATH"
-  # Config.pm still points at C:/strawberry. Building Font::FreeType needs the
-  # headers and libperl import library at that prefix.
-  if [ ! -e /c/strawberry ]; then
-    log "junction C:/strawberry -> strawberry runtime"
-    MSYS_NO_PATHCONV=1 cmd //c "mklink /J C:\\strawberry $(native_path "$STAGE/runtime/strawberry")"
-  fi
-  found=$(find /c/strawberry/perl/lib/CORE -name 'libperl*.a' -print | head -1)
-  [ -n "$found" ] || die "C:/strawberry/perl/lib/CORE is missing libperl"
 }
 
 if [ "$PLATFORM" = "windows-x64" ]; then
@@ -321,8 +313,28 @@ ft_dir=$(dirname "$ft_dir")
   cd "$ft_dir"
   "$PERL" Makefile.PL
   ft_a=$(native_path "$FT_LIB")
-  "$PERL" -i.bak -pe 'BEGIN { $lib = shift } s/-lfreetype\b/$lib/g' "$ft_a" Makefile
+  prefix=""
+  if [ "$PLATFORM" = "windows-x64" ]; then
+    # Config.pm keeps the C:/strawberry prefix from the portable build.
+    prefix=$(native_path "$STAGE/runtime/strawberry")
+  fi
+  # Forward slashes only. A backslash prefix would be eaten as
+  # string escapes (\a, \v) inside the replacement.
+  "$PERL" -i.bak -e '
+    BEGIN {
+      $lib = shift;
+      $prefix = shift // "";
+    }
+    while (<>) {
+      s{-lfreetype\b}{$lib}g;
+      s{C:[\\/]strawberry}{$prefix}g if $prefix ne "";
+      print;
+    }
+  ' "$ft_a" "$prefix" Makefile
   grep -F "$ft_a" Makefile >/dev/null || die "Font::FreeType Makefile does not use the static library"
+  if [ -n "$prefix" ]; then
+    grep -F "$prefix" Makefile >/dev/null || die "Font::FreeType Makefile still points at C:/strawberry"
+  fi
   makebin=$("$PERL" -MConfig -e 'print $Config{make}')
   "$makebin"
   "$makebin" install
