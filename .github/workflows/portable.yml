@@ -1,0 +1,126 @@
+name: portable
+
+on:
+  push:
+    branches:
+      - main
+      - 'cursor/**'
+    tags:
+      - 'v*'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: portable-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  package:
+    name: ${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            platform: linux-x64
+          - os: windows-latest
+            platform: windows-x64
+          - os: macos-15
+            platform: darwin-arm64
+          - os: macos-15-intel
+            platform: darwin-x64
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Linux build tools
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake pkg-config curl
+
+      - name: macOS cmake
+        if: runner.os == 'macOS'
+        run: |
+          if ! command -v cmake >/dev/null 2>&1; then
+            brew install cmake
+          fi
+
+      - name: Windows tools
+        if: runner.os == 'Windows'
+        run: |
+          if ! command -v cmake >/dev/null 2>&1; then
+            if [ -x "/c/Program Files/CMake/bin/cmake.exe" ]; then
+              echo "/c/Program Files/CMake/bin" >> "$GITHUB_PATH"
+              export PATH="/c/Program Files/CMake/bin:$PATH"
+            fi
+          fi
+          command -v cmake
+          command -v cygpath
+          cmake --version
+
+      - name: Build
+        env:
+          PLATFORM: ${{ matrix.platform }}
+        run: |
+          case "$GITHUB_REF" in
+            refs/tags/v*) export VRAIN_VERSION="$GITHUB_REF_NAME" ;;
+            *) export VRAIN_VERSION=dev ;;
+          esac
+          bash packaging/build.sh
+
+      - name: Smoke
+        run: |
+          archive=""
+          for f in dist/vRain-Web-*.tar.gz dist/vRain-Web-*.zip; do
+            if [ -f "$f" ]; then
+              archive=$f
+              break
+            fi
+          done
+          if [ -z "$archive" ]; then
+            echo "package archive missing" >&2
+            ls -la dist || true
+            exit 1
+          fi
+          bash packaging/smoke.sh "$archive"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vRain-Web-${{ matrix.platform }}
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            dist/*.tar.gz
+            dist/*.zip
+
+  release:
+    name: release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: package
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            dist/**/*.tar.gz
+            dist/**/*.zip
+            dist/*.tar.gz
+            dist/*.zip
