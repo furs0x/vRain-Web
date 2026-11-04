@@ -319,17 +319,23 @@ ft_dir=$(dirname "$ft_dir")
     target=$(native_path "$STAGE/runtime/strawberry" | tr '/' '\\')
     bat="$ROOT/build/link-strawberry.bat"
     {
-      printf '%s\r\n' '@echo off'
+      printf '%s\r\n' '@echo on'
       printf '%s\r\n' 'if exist C:\strawberry.host-saved rmdir /S /Q C:\strawberry.host-saved'
       printf '%s\r\n' 'if exist C:\strawberry move C:\strawberry C:\strawberry.host-saved'
+      printf '%s\r\n' 'if errorlevel 1 exit /b 1'
       printf 'mklink /J C:\strawberry "%s"\r\n' "$target"
+      printf '%s\r\n' 'if errorlevel 1 exit /b 1'
+      printf '%s\r\n' 'echo JUNCTION_OK'
     } > "$bat"
     log "junction C:/strawberry to $target"
     sed 's/\r$//' "$bat"
-    # A bare cmd /c argument that contains /runtime is parsed as the /r switch.
-    bat_win=$(native_path "$bat" | tr '/' '\\')
-    MSYS_NO_PATHCONV=1 cmd.exe //c "call $bat_win"
-    [ -f /c/strawberry/perl/lib/CORE/libperl540.a ] || die "libperl540.a is not visible at C:/strawberry"
+    # Git Bash runs a .bat itself. cmd /c would treat /runtime in the
+    # argument list as the /r switch, and MSYS_NO_PATHCONV leaves //c literal.
+    "$bat"
+    if [ ! -f /c/strawberry/perl/lib/CORE/libperl540.a ]; then
+      ls -l /c/strawberry /c/strawberry/perl/lib/CORE 2>&1 | head -40 >&2 || true
+      die "libperl540.a is not visible at C:/strawberry"
+    fi
   fi
   "$PERL" Makefile.PL
   ft_a=$(native_path "$FT_LIB")
