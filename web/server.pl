@@ -64,7 +64,7 @@ $SIG{INT} = $SIG{TERM} = sub {
 };
 
 my $url = "http://127.0.0.1:$PORT/";
-print "兀雨 vRain Web 已啟動 / ready\n";
+print "兀雨 vRain Web 已启动 / ready\n";
 print "VRAIN_READY $url\n";
 print "按 Ctrl+C 停止 / Press Ctrl+C to stop\n";
 open_browser($url) unless $no_browser;
@@ -178,9 +178,9 @@ sub handle_client {
     }
     if ($method eq 'POST' && $path eq '/api/fonts') {
         my $name = header_filename($headers->{'x-filename'} || '');
-        die "400 字體檔名需以 .ttf .otf 或 .ttc 結尾 / bad font name\n"
+        die "400 字体文件名需以 .ttf .otf 或 .ttc 结尾 / bad font name\n"
             unless $name =~ /\.(ttf|otf|ttc)\z/i;
-        die "400 空檔案 / empty file\n" unless defined $body && length $body;
+        die "400 空文件 / empty file\n" unless defined $body && length $body;
         my $dest = File::Spec->catfile($ROOT, 'fonts', $name);
         spew_raw($dest, $body);
         return send_json($client, 201, 'Created', { name => $name, bytes => length $body });
@@ -190,14 +190,14 @@ sub handle_client {
         my $src = $headers->{'x-source-canvas'} || '';
         $id =~ s/^\s+|\s+$//g;
         $src =~ s/^\s+|\s+$//g;
-        die "400 底圖 ID 不合法 / bad canvas id\n" unless valid_id($id);
-        die "400 來源書葉不合法 / bad source canvas\n" unless valid_id($src);
-        die "400 請上傳 JPEG / JPEG required\n" unless defined $body && $body =~ /^\xFF\xD8\xFF/;
+        die "400 底图 ID 不合法 / bad canvas id\n" unless valid_id($id);
+        die "400 来源书叶不合法 / bad source canvas\n" unless valid_id($src);
+        die "400 请上传 JPEG / JPEG required\n" unless defined $body && $body =~ /^\xFF\xD8\xFF/;
         my $src_cfg = File::Spec->catfile($ROOT, 'canvas', "$src.cfg");
-        die "404 找不到來源書葉 / source canvas not found\n" unless -f $src_cfg;
+        die "404 找不到来源书叶 / source canvas not found\n" unless -f $src_cfg;
         my $cfg = File::Spec->catfile($ROOT, 'canvas', "$id.cfg");
         my $jpg = File::Spec->catfile($ROOT, 'canvas', "$id.jpg");
-        copy($src_cfg, $cfg) or die "500 無法複製書葉設定 / copy failed\n";
+        copy($src_cfg, $cfg) or die "500 无法复制书叶设置 / copy failed\n";
         spew_raw($jpg, $body);
         return send_json($client, 201, 'Created', { id => $id });
     }
@@ -209,7 +209,7 @@ sub handle_client {
 
     if ($path =~ m{\A/api/books/([A-Za-z0-9][A-Za-z0-9_-]{0,40})(.*)\z}) {
         my ($id, $rest) = ($1, $2);
-        die "404 找不到書籍 / book not found\n" unless book_exists($id);
+        die "404 找不到书籍 / book not found\n" unless book_exists($id);
         if ($rest eq '' && $method eq 'GET') {
             return send_json($client, 200, 'OK', book_detail($id));
         }
@@ -222,14 +222,14 @@ sub handle_client {
             return send_json($client, 200, 'OK', book_detail($id));
         }
         if ($rest eq '/cover' && $method eq 'POST') {
-            die "400 請上傳 JPEG / JPEG required\n" unless defined $body && $body =~ /^\xFF\xD8\xFF/;
+            die "400 请上传 JPEG / JPEG required\n" unless defined $body && $body =~ /^\xFF\xD8\xFF/;
             spew_raw(File::Spec->catfile(book_dir($id), 'cover.jpg'), $body);
             return send_json($client, 201, 'Created', { ok => JSON::PP::true });
         }
         if ($rest eq '/pdf' && $method eq 'GET') {
             my $name = query_param($query, 'name');
-            die "400 缺少檔名 / missing name\n" unless defined $name && $name ne '';
-            die "400 檔名不合法 / bad name\n" if $name =~ m{[/\\]} || $name =~ /\.\./ || $name !~ /\.pdf\z/i;
+            die "400 缺少文件名 / missing name\n" unless defined $name && $name ne '';
+            die "400 文件名不合法 / bad name\n" if $name =~ m{[/\\]} || $name =~ /\.\./ || $name !~ /\.pdf\z/i;
             my $file = File::Spec->catfile(book_dir($id), $name);
             die "404 找不到 PDF / PDF not found\n" unless -f $file;
             my $download = query_param($query, 'download') ? 1 : 0;
@@ -239,7 +239,7 @@ sub handle_client {
             my $name = $1;
             $name =~ s/%([0-9A-Fa-f]{2})/chr(hex($1))/eg;
             $name = decode('UTF-8', $name, FB_DEFAULT);
-            die "400 文本檔名不合法 / bad text name\n" unless valid_text_name($name);
+            die "400 文本文件名不合法 / bad text name\n" unless valid_text_name($name);
             my $file = File::Spec->catfile(book_dir($id), 'text', $name);
             if ($method eq 'GET') {
                 die "404 找不到文本 / text not found\n" unless -f $file;
@@ -276,14 +276,14 @@ sub read_request {
         my $n = sysread($client, my $chunk, 8192);
         return unless defined $n && $n > 0;
         $buf .= $chunk;
-        die "400 標頭過大 / headers too large\n" if length($buf) > 65536 && $buf !~ /\r\n\r\n/s;
+        die "400 标头过大 / headers too large\n" if length($buf) > 65536 && $buf !~ /\r\n\r\n/s;
     }
     my ($head, $rest) = split /\r\n\r\n/, $buf, 2;
     $rest = '' unless defined $rest;
     my @lines = split /\r\n/, $head;
     my $reqline = shift @lines || '';
     my ($method, $target) = split / /, $reqline, 3;
-    die "400 錯誤的請求 / bad request\n" unless $method && defined $target;
+    die "400 错误的请求 / bad request\n" unless $method && defined $target;
     my %headers;
     for my $line (@lines) {
         my ($k, $v) = split /:\s*/, $line, 2;
@@ -295,9 +295,9 @@ sub read_request {
     $path =~ s/%([0-9A-Fa-f]{2})/chr(hex($1))/eg;
     my $len = 0;
     if (exists $headers{'content-length'}) {
-        die "400 長度不合法 / bad length\n" unless $headers{'content-length'} =~ /^\d+\z/;
+        die "400 长度不合法 / bad length\n" unless $headers{'content-length'} =~ /^\d+\z/;
         $len = 0 + $headers{'content-length'};
-        die "413 檔案過大 / body too large\n" if $len > 80 * 1024 * 1024;
+        die "413 文件过大 / body too large\n" if $len > 80 * 1024 * 1024;
     } elsif ($method eq 'POST' || $method eq 'PUT') {
         die "411 需要 Content-Length / length required\n";
     }
@@ -305,7 +305,7 @@ sub read_request {
     while ($need > 0) {
         my $chunk_size = $need > 65536 ? 65536 : $need;
         my $n = sysread($client, my $chunk, $chunk_size);
-        die "400 內容不完整 / truncated body\n" unless defined $n && $n > 0;
+        die "400 内容不完整 / truncated body\n" unless defined $n && $n > 0;
         $rest .= $chunk;
         $need -= $n;
     }
@@ -316,7 +316,7 @@ sub read_request {
 sub decode_json_body {
     my ($body) = @_;
     my $data = eval { $JSON->decode($body || '') };
-    die "400 JSON 無法解析 / invalid JSON\n" if $@ || ref $data ne 'HASH';
+    die "400 JSON 无法解析 / invalid JSON\n" if $@ || ref $data ne 'HASH';
     return $data;
 }
 
@@ -418,7 +418,7 @@ sub header_filename {
     $name =~ s/\\/\//g;
     $name =~ s{^.*/}{};
     $name =~ s/^\s+|\s+$//g;
-    die "400 檔名不合法 / bad filename\n" if $name eq '' || $name =~ m{[/\\]} || $name =~ /\.\./ || $name =~ /[\r\n\0]/;
+    die "400 文件名不合法 / bad filename\n" if $name eq '' || $name =~ m{[/\\]} || $name =~ /\.\./ || $name =~ /[\r\n\0]/;
     return $name;
 }
 
@@ -434,7 +434,7 @@ sub valid_text_name {
 
 sub book_dir {
     my ($id) = @_;
-    die "400 書籍 ID 不合法 / bad book id\n" unless valid_id($id);
+    die "400 书籍 ID 不合法 / bad book id\n" unless valid_id($id);
     return File::Spec->catdir($ROOT, 'books', $id);
 }
 
@@ -455,7 +455,7 @@ sub jobs_root {
 
 sub slurp_raw {
     my ($path) = @_;
-    open my $fh, '<:raw', $path or die "500 無法讀取 / cannot read\n";
+    open my $fh, '<:raw', $path or die "500 无法读取 / cannot read\n";
     local $/;
     my $data = <$fh>;
     close $fh;
@@ -465,15 +465,15 @@ sub slurp_raw {
 sub spew_raw {
     my ($path, $bytes) = @_;
     my $tmp = $path . '.writing';
-    open my $fh, '>:raw', $tmp or die "500 無法寫入 / cannot write\n";
-    print $fh $bytes or die "500 無法寫入 / cannot write\n";
-    close $fh or die "500 無法寫入 / cannot write\n";
-    rename $tmp, $path or die "500 無法寫入 / cannot write\n";
+    open my $fh, '>:raw', $tmp or die "500 无法写入 / cannot write\n";
+    print $fh $bytes or die "500 无法写入 / cannot write\n";
+    close $fh or die "500 无法写入 / cannot write\n";
+    rename $tmp, $path or die "500 无法写入 / cannot write\n";
 }
 
 sub parse_cfg_file {
     my ($path) = @_;
-    die "404 找不到設定 / config not found\n" unless -f $path;
+    die "404 找不到设置 / config not found\n" unless -f $path;
     my $bytes = slurp_raw($path);
     $bytes =~ s/^\xEF\xBB\xBF//;
     my %cfg;
@@ -495,23 +495,23 @@ sub parse_cfg_file {
 
 sub assert_cfg {
     my ($cfg) = @_;
-    die "400 缺少書名 title / missing title\n" unless defined $cfg->{title} && $cfg->{title} ne '';
+    die "400 缺少书名 title / missing title\n" unless defined $cfg->{title} && $cfg->{title} ne '';
     die "400 缺少 canvas_id / missing canvas\n" unless defined $cfg->{canvas_id} && $cfg->{canvas_id} ne '';
     my $cid = $cfg->{canvas_id};
-    die "400 書葉 ID 不合法 / bad canvas id\n" unless valid_id($cid);
+    die "400 书叶 ID 不合法 / bad canvas id\n" unless valid_id($cid);
     my $jpg = File::Spec->catfile($ROOT, 'canvas', "$cid.jpg");
     my $ccfg = File::Spec->catfile($ROOT, 'canvas', "$cid.cfg");
-    die "400 找不到書葉背景 / canvas not found\n" unless -f $jpg && -f $ccfg;
-    die "400 未設定主字體 font1 / font1 required\n" unless defined $cfg->{font1} && $cfg->{font1} ne '';
+    die "400 找不到书叶背景 / canvas not found\n" unless -f $jpg && -f $ccfg;
+    die "400 未设置主字体 font1 / font1 required\n" unless defined $cfg->{font1} && $cfg->{font1} ne '';
     for my $i (1 .. 5) {
         my $font = $cfg->{"font$i"};
         next unless defined $font && $font ne '';
-        die "400 字體檔名不合法 / bad font name\n" if $font =~ m{[/\\]} || $font =~ /\.\./;
+        die "400 字体文件名不合法 / bad font name\n" if $font =~ m{[/\\]} || $font =~ /\.\./;
         my $file = File::Spec->catfile($ROOT, 'fonts', $font);
-        die "400 找不到字體 $font / font missing\n" unless -f $file;
+        die "400 找不到字体 $font / font missing\n" unless -f $file;
     }
     if (defined $cfg->{row_num} && $cfg->{row_num} ne '' && $cfg->{row_num} !~ /\A[1-9]\d*\z/) {
-        die "400 每列字數必須是正整數 / row_num must be a positive integer\n";
+        die "400 每列字数必须是正整数 / row_num must be a positive integer\n";
     }
 }
 
@@ -524,8 +524,8 @@ sub update_cfg_file {
         next unless $key =~ /\A[A-Za-z_][A-Za-z0-9_]*\z/;
         my $val = $values->{$key};
         $val = '' unless defined $val;
-        die "400 設定值不能換行 / value cannot contain newlines\n" if $val =~ /[\r\n]/;
-        die "400 設定值過長 / value too long\n" if length($val) > 4000;
+        die "400 设置值不能换行 / value cannot contain newlines\n" if $val =~ /[\r\n]/;
+        die "400 设置值过长 / value too long\n" if length($val) > 4000;
         my $found = 0;
         for my $line (@lines) {
             next unless defined $line;
@@ -548,9 +548,9 @@ sub update_cfg_file {
 
 sub write_raw_cfg {
     my ($path, $text) = @_;
-    die "400 設定不是字串 / config must be a string\n" if ref $text;
+    die "400 设置不是字串 / config must be a string\n" if ref $text;
     $text = '' unless defined $text;
-    die "400 設定檔過大 / config too large\n" if length($text) > 200000;
+    die "400 设置档过大 / config too large\n" if length($text) > 200000;
     $text =~ s/^\x{FEFF}//;
     $text =~ s/\r\n/\n/g;
     $text =~ s/\r/\n/g;
@@ -568,7 +568,7 @@ sub write_raw_cfg {
         unlink $tmp;
         die $@;
     }
-    rename $tmp, $path or die "500 無法寫入 / cannot write\n";
+    rename $tmp, $path or die "500 无法写入 / cannot write\n";
 }
 
 sub list_books {
@@ -681,7 +681,7 @@ sub list_pdfs {
 
 sub book_detail {
     my ($id) = @_;
-    die "404 找不到書籍 / book not found\n" unless book_exists($id);
+    die "404 找不到书籍 / book not found\n" unless book_exists($id);
     my $cfg_path = File::Spec->catfile(book_dir($id), 'book.cfg');
     my $cfg = parse_cfg_file($cfg_path);
     return {
@@ -754,15 +754,15 @@ sub has_gs {
 sub create_book {
     my ($data) = @_;
     my $id = $data->{id} || '';
-    die "400 書籍 ID 不合法 / bad book id\n" unless valid_id($id);
-    die "409 書籍已存在 / book exists\n" if book_exists($id) || -e book_dir($id);
+    die "400 书籍 ID 不合法 / bad book id\n" unless valid_id($id);
+    die "409 书籍已存在 / book exists\n" if book_exists($id) || -e book_dir($id);
     my $template = $data->{template} || 'sample';
-    die "400 範本不合法 / bad template\n" unless valid_id($template);
+    die "400 范本不合法 / bad template\n" unless valid_id($template);
     my $src = File::Spec->catfile(book_dir($template), 'book.cfg');
-    die "404 找不到範本 / template not found\n" unless -f $src;
+    die "404 找不到范本 / template not found\n" unless -f $src;
     my $dir = book_dir($id);
     make_path(File::Spec->catdir($dir, 'text'));
-    copy($src, File::Spec->catfile($dir, 'book.cfg')) or die "500 無法建立書籍 / cannot create book\n";
+    copy($src, File::Spec->catfile($dir, 'book.cfg')) or die "500 无法建立书籍 / cannot create book\n";
     my %over;
     $over{title} = $data->{title} if defined $data->{title} && !ref $data->{title};
     $over{author} = $data->{author} if defined $data->{author} && !ref $data->{author};
@@ -783,12 +783,12 @@ sub create_book {
 
 sub delete_book {
     my ($id) = @_;
-    die "403 範例書不能刪除 / sample books are kept\n" if protected_book($id);
-    die "409 這本書正在排版 / book is generating\n" if job_busy_for($id);
+    die "403 范例书不能删除 / sample books are kept\n" if protected_book($id);
+    die "409 这本书正在排版 / book is generating\n" if job_busy_for($id);
     my $dir = book_dir($id);
-    die "404 找不到書籍 / book not found\n" unless -d $dir;
-    die "400 拒絕刪除連結 / refusing to delete a symlink\n" if -l $dir;
-    remove_tree($dir) or die "500 無法刪除 / cannot delete\n";
+    die "404 找不到书籍 / book not found\n" unless -d $dir;
+    die "400 拒绝删除连结 / refusing to delete a symlink\n" if -l $dir;
+    remove_tree($dir) or die "500 无法删除 / cannot delete\n";
 }
 
 sub save_config {
@@ -804,9 +804,9 @@ sub save_config {
     for my $key (keys %$values) {
         next unless $key =~ /\A[A-Za-z_][A-Za-z0-9_]*\z/;
         my $val = $values->{$key};
-        die "400 設定值必須是字串或數字 / value must be a string\n" if ref $val;
+        die "400 设置值必须是字串或数字 / value must be a string\n" if ref $val;
         $val = '' unless defined $val;
-        die "400 設定值不能換行 / value cannot contain newlines\n" if $val =~ /[\r\n]/;
+        die "400 设置值不能换行 / value cannot contain newlines\n" if $val =~ /[\r\n]/;
         $cfg->{$key} = "$val";
     }
     assert_cfg($cfg);
@@ -816,22 +816,22 @@ sub save_config {
 sub start_job {
     my ($data) = @_;
     my $id = $data->{book} || '';
-    die "404 找不到書籍 / book not found\n" unless book_exists($id);
+    die "404 找不到书籍 / book not found\n" unless book_exists($id);
     my $cfg = parse_cfg_file(File::Spec->catfile(book_dir($id), 'book.cfg'));
     assert_cfg($cfg);
     my $from = defined $data->{from} ? $data->{from} : 1;
     my $to = defined $data->{to} ? $data->{to} : 1;
     my $test = defined $data->{testPages} ? $data->{testPages} : 0;
-    die "400 序號必須是正整數 / from and to must be positive integers\n"
+    die "400 序号必须是正整数 / from and to must be positive integers\n"
         unless "$from" =~ /\A[1-9]\d*\z/ && "$to" =~ /\A[1-9]\d*\z/ && $from <= $to && $to <= 9999;
-    die "400 測試頁數不合法 / bad test page count\n"
+    die "400 测试页数不合法 / bad test page count\n"
         unless "$test" =~ /\A\d+\z/ && $test <= 500;
     my $compress = $data->{compress} ? 1 : 0;
-    die "400 未找到 Ghostscript，不能壓縮 / Ghostscript not found\n" if $compress && !has_gs();
+    die "400 未找到 Ghostscript，不能压缩 / Ghostscript not found\n" if $compress && !has_gs();
 
     my $cur = read_current();
     if ($cur && process_alive($cur->{pid})) {
-        die "409 已有排版工作在執行 / a job is already running\n";
+        die "409 已有排版工作在执行 / a job is already running\n";
     }
 
     cleanup_jobs();
@@ -873,11 +873,11 @@ sub spawn {
     my $runner = File::Spec->catfile($ROOT, 'web', 'run.pl');
     if ($^O eq 'MSWin32') {
         my $pid = system(1, $^X, $runner, $log, $ROOT, @cmd);
-        die "500 無法啟動排版 / failed to start typesetter\n" if !$pid || $pid < 0;
+        die "500 无法启动排版 / failed to start typesetter\n" if !$pid || $pid < 0;
         return $pid;
     }
     my $pid = fork();
-    die "500 無法啟動排版 / fork failed\n" unless defined $pid;
+    die "500 无法启动排版 / fork failed\n" unless defined $pid;
     if ($pid == 0) {
         close $SERVER if $SERVER;
         exec $^X, $runner, $log, $ROOT, @cmd;
@@ -994,9 +994,9 @@ sub self_check {
     make_path($tmp);
     my $copy = File::Spec->catfile($tmp, 'book.cfg');
     copy(File::Spec->catfile(book_dir('sample'), 'book.cfg'), $copy) or die "copy failed\n";
-    update_cfg_file($copy, { title => '測試甲', row_num => '12' });
+    update_cfg_file($copy, { title => '测试甲', row_num => '12' });
     my $again = parse_cfg_file($copy);
-    die "roundtrip title\n" unless $again->{title} eq '測試甲';
+    die "roundtrip title\n" unless $again->{title} eq '测试甲';
     die "roundtrip row\n" unless $again->{row_num} eq '12';
     die "roundtrip font\n" unless $again->{font1} eq $cfg->{font1};
     remove_tree($tmp);
