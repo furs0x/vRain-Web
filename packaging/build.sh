@@ -259,8 +259,13 @@ log "freetype-config --cflags => $($FTCFG --cflags)"
 log "install pure-Perl modules"
 # Copy these straight into sitelib. cpanm on Windows can report Font::TTF as
 # installed and then still refuse to load it for PDF::Builder.
-sitelib=$("$PERL" -MConfig -e 'my $p=$Config{sitelib}; $p =~ s{\\}{/}g; print $p')
+# Strawberry's Config still says C:/strawberry after the zip is unpacked.
+# @INC is rewritten to the real directory, so install where perl will look.
+sitelib=$("$PERL" -MConfig -e 'my $arch=$Config{archname}; for my $p (@INC) { next unless $p =~ /site/; next if $arch && $p =~ /\Q$arch\E/; $p =~ s{\\}{/}g; print $p; exit } die "no sitelib\n"')
 [ -n "$sitelib" ] || die "perl sitelib is empty"
+case "$sitelib" in
+  *[Cc]:/strawberry/*) die "sitelib is still the Strawberry build prefix: $sitelib" ;;
+esac
 mkdir -p "$sitelib"
 install_pure() {
   url=$1
