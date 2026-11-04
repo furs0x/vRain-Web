@@ -256,29 +256,42 @@ fi
 log "freetype-config --libs => $($FTCFG --libs)"
 log "freetype-config --cflags => $($FTCFG --cflags)"
 
-log "install Perl modules"
+log "install pure-Perl modules"
+# Copy these straight into sitelib. cpanm on Windows can report Font::TTF as
+# installed and then still refuse to load it for PDF::Builder.
+sitelib=$("$PERL" -MConfig -e 'my $p=$Config{sitelib}; $p =~ s{\\}{/}g; print $p')
+[ -n "$sitelib" ] || die "perl sitelib is empty"
+mkdir -p "$sitelib"
+install_pure() {
+  url=$1
+  tarball="$CACHE/$(basename "$url")"
+  download "$url" "$tarball"
+  dest="$ROOT/build/pure/$(basename "$tarball" .tar.gz)"
+  rm -rf "$dest"
+  mkdir -p "$dest"
+  tar -xzf "$tarball" -C "$dest"
+  top=$(find "$dest" -mindepth 1 -maxdepth 1 -type d -print | head -1)
+  [ -n "$top" ] || die "archive $(basename "$tarball") did not extract"
+  if [ -d "$top/lib" ]; then
+    cp -a "$top/lib/." "$sitelib/"
+  elif [ -f "$top/String.pm" ]; then
+    mkdir -p "$sitelib/IO"
+    cp -a "$top/String.pm" "$sitelib/IO/String.pm"
+  else
+    die "no installable modules in $(basename "$tarball")"
+  fi
+  log "copied $(basename "$tarball") into $sitelib"
+}
+install_pure "https://cpan.metacpan.org/authors/id/G/GA/GAAS/IO-String-1.08.tar.gz"
+install_pure "https://cpan.metacpan.org/authors/id/B/BH/BHALLISSY/Font-TTF-1.06.tar.gz"
+install_pure "https://cpan.metacpan.org/authors/id/P/PM/PMPERRY/PDF-Builder-3.028.tar.gz"
+install_pure "https://cpan.metacpan.org/authors/id/M/MA/MATTN/Devel-CheckLib-1.16.tar.gz"
+install_pure "https://cpan.metacpan.org/authors/id/P/PL/PLICEASE/File-Which-1.27.tar.gz"
+"$PERL" -MIO::String -MFont::TTF -MPDF::Builder -MDevel::CheckLib -MFile::Which -e 'print "PDF::Builder ", PDF::Builder->VERSION, "\n"'
+
 export PERL_MM_USE_DEFAULT=1
 export PERL_MM_NONINTERACTIVE=1
 export PERL_CANARY_STABILITY_DISABLE=1
-CPANM="$(dirname "$PERL")/cpanm"
-if [ ! -x "$CPANM" ] && [ ! -f "$CPANM.bat" ]; then
-  curl -fsSL https://cpanmin.us | "$PERL" - App::cpanminus
-fi
-cpanm_notest() {
-  if [ -x "$CPANM" ]; then
-    "$CPANM" --notest "$@"
-  elif [ -f "$CPANM.bat" ]; then
-    cmd //c "$(native_path "$CPANM.bat")" --notest "$@"
-  else
-    die "cpanm was not installed"
-  fi
-}
-# One module per invocation. A single cpanm command on Windows can install
-# Font::TTF and then still report that PDF::Builder's dependency is missing.
-for mod in IO::String Font::TTF PDF::Builder Devel::CheckLib File::Which; do
-  log "cpanm $mod"
-  cpanm_notest "$mod"
-done
 
 # Link the static archive by path. macOS ld otherwise prefers a Homebrew
 # libfreetype.dylib, and Devel::CheckLib rejects -Wl flags in --libs.
