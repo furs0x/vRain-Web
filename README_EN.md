@@ -3,7 +3,7 @@
 [![Version](https://img.shields.io/badge/version-v1.5-blue.svg)](https://github.com/shanleiguang/vRain)
 [![Language](https://img.shields.io/badge/language-Perl%205-brightgreen.svg)](https://www.perl.org/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey.svg)]()
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)]()
 
 vRain is a Perl-based toolchain that converts Chinese text into elegantly typeset vertical-layout PDF e-books in the style of traditional woodblock-printed editions. It supports multiple classic formats (movable type, bamboo slips, game records, etc.), multi-font fallback for rare characters, and automatic font metric adjustment for visual consistency.
 
@@ -20,6 +20,54 @@ vRain is a Perl-based toolchain that converts Chinese text into elegantly typese
 - **Rich Annotation System**: Wavy book-title lines, rounded-corner frames, circle frames, circle/dot/line emphasis markers, font scaling
 - **Automatic Table of Contents**: Chapter titles automatically extracted as PDF outline bookmarks
 - **PDF Compression**: Optional Ghostscript-based output compression
+
+## Download and run
+
+Windows, macOS, and Linux each have a compressed package. Extract it and start the launcher. A browser opens a page bound to this machine. Perl, fonts, and ImageMagick do not need to be installed separately.
+
+Each package carries its own Perl: [relocatable-perl](https://github.com/skaji/relocatable-perl) 5.42 on Linux and macOS, and portable [Strawberry Perl](https://github.com/StrawberryPerl/Perl-Dist-Strawberry) on Windows. `web/server.pl` is a small HTTP server written with Perl core modules. It listens on `127.0.0.1:8787` (and the next 20 ports if that one is busy), collects the book, canvas, fonts, and `book.cfg` settings, then runs the existing `vrain.pl`. The typesetter is unchanged. `Font::FreeType` is linked against a static FreeType 2.13 at package time, so a system libfreetype is unnecessary. Canvas JPGs ship in the package; ImageMagick is needed only when regenerating a background with `canvas/*.pl`. PDF compression needs a system Ghostscript; without it the PDF is still written. The command-line flags are the same as before.
+
+GitHub Actions builds and smoke-tests `books/sample` on `ubuntu-24.04`, `windows-latest`, `macos-15` (Apple silicon), and `macos-15-intel`. Artifacts are on the workflow run. A `v*` tag also attaches the four packages to a GitHub Release. On a fork, enable Actions in the repository settings. If GitHub holds the first run, approve it before it starts.
+
+### Windows
+
+Download `vRain-Web-*-windows-x64.zip`, extract it, and double-click `START.bat`. The binary is unsigned. If SmartScreen blocks it, choose “Run anyway”. From a terminal:
+
+```bat
+vrain.bat -b sample -f 1 -t 1 -z 1
+```
+
+### macOS
+
+Apple silicon uses `darwin-arm64`. Intel uses `darwin-x64`.
+
+```bash
+tar -xzf vRain-Web-*-darwin-arm64.tar.gz
+cd vRain-Web-darwin-arm64
+xattr -dr com.apple.quarantine .
+./start.sh
+```
+
+`start.command` does the same thing from Finder. The binary is unsigned, so Gatekeeper blocks a downloaded app until the quarantine flag is cleared or you right-click `start.command` and choose Open.
+
+### Linux
+
+```bash
+tar -xzf vRain-Web-*-linux-x64.tar.gz
+cd vRain-Web-linux-x64
+./start.sh
+```
+
+The x64 package needs glibc 2.33 or newer (Ubuntu 22.04, Debian 12, and later). The exact requirement is in `runtime/GLIBC.txt` inside the package. Automated builds are x64 only; on an arm64 machine, `bash packaging/build.sh` produces a package there.
+
+The page defaults to Traditional Chinese and can switch to English. Pick or create a book, upload text, a font, a cover, or a JPEG canvas, then generate, watch the log, and preview or download the PDF. One typesetting job runs at a time. `books/sample` is a short example and `books/01` is the original 虞初新志 book; the page will not delete those two. `vrain_mr.pl` and `books_mr/` stay on the command line.
+
+For development, `./start-web.sh` prefers a previously built `runtime/perl` and otherwise uses system Perl (system Perl needs `PDF::Builder` and `Font::FreeType` before it can typeset). To build a package yourself:
+
+```bash
+bash packaging/build.sh
+bash packaging/smoke.sh dist/vRain-Web-*.tar.gz
+```
 
 ## Requirements
 
