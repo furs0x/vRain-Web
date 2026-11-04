@@ -3,7 +3,7 @@
 [![Version](https://img.shields.io/badge/version-v1.5-blue.svg)](https://github.com/shanleiguang/vRain)
 [![Language](https://img.shields.io/badge/language-Perl%205-brightgreen.svg)](https://www.perl.org/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey.svg)]()
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)]()
 
 vRain（兀雨）是一個 Perl 工具鏈，可將中文文本生成為古籍刻本風格的直排（豎排）PDF 電子書。支援木活字、竹簡、棋譜等多種刻本風格，內建多字體補全策略確保生僻字正常顯示，並支援字體度量微調保持版面視覺一致性。
 
@@ -58,6 +58,54 @@ vRain（兀雨）是一個 Perl 工具鏈，可將中文文本生成為古籍刻
 - **PDF 壓縮**：可選用 Ghostscript 對輸出 PDF 進行壓縮
 - **保留字符**：'@'代表空格，'【】'內代表雙排批注文字，'%'代表換葉符，'$'代表換頁符（半葉），'&'代表下行文字居葉末，文本行首'S+數字'代表整段縮幾個字符（需indentxt腳本做預處理）,文本行首'T'代表段首字頂一格，'《》'代表左側波浪線，'〔〕'代表圓角方框，'〈〉'代表圓形框，'（）'代表字體大小縮放，'｛｝'代表正文右側圈注，'＜＞'代表正文右側點注，'［］'代表正文右側線注
 
+
+## 下載即用
+
+Windows、macOS、Linux 各有一份壓縮包。解壓後直接執行，瀏覽器會打開本機頁面。不必另外安裝 Perl、字體或 ImageMagick。
+
+套件自帶一份可搬移的 Perl：Linux 與 macOS 使用 [relocatable-perl](https://github.com/skaji/relocatable-perl) 5.42，Windows 使用 [Strawberry Perl](https://github.com/StrawberryPerl/Perl-Dist-Strawberry) portable。`web/server.pl` 只用 Perl 核心模組聽 `127.0.0.1:8787`（埠被占用時會往後試 20 個），透過網頁收集書籍、書葉、字體和 `book.cfg` 裡的設定，再呼叫原來的 `vrain.pl` 排版。排版引擎沒有改寫。`Font::FreeType` 在打包時靜態連結 FreeType 2.13，因此不依賴系統裡的 libfreetype。書葉背景 JPG 已經放進套件；只有執行 `canvas/*.pl` 重繪背景時才需要 ImageMagick。PDF 壓縮需要系統上的 Ghostscript，沒有時仍可生成 PDF。命令列參數與原來相同。
+
+GitHub Actions 在 `ubuntu-24.04`、`windows-latest`、`macos-15`（Apple 晶片）和 `macos-15-intel` 上建置並用 `books/sample` 做煙霧測試，產物可在該次執行的 Artifacts 下載。推送 `v*` 標籤時，四個套件會掛到對應的 GitHub Release。Fork 之後若沒有看到執行記錄，到倉庫的 Actions 頁啟用 Actions，第一次執行若被暫停，核准後才會開始。
+
+### Windows
+
+下載 `vRain-Web-*-windows-x64.zip`，解壓，雙擊 `START.bat`。程式未簽名，SmartScreen 若攔截，選擇「仍要執行」。命令列：
+
+```bat
+vrain.bat -b sample -f 1 -t 1 -z 1
+```
+
+### macOS
+
+Apple 晶片下載 `darwin-arm64`，Intel 下載 `darwin-x64`。
+
+```bash
+tar -xzf vRain-Web-*-darwin-arm64.tar.gz
+cd vRain-Web-darwin-arm64
+xattr -dr com.apple.quarantine .
+./start.sh
+```
+
+也可以雙擊 `start.command`。程式未簽名，Gatekeeper 會攔截從網路下載的檔案；上面的 `xattr` 會清掉隔離標記，或在 Finder 裡對 `start.command` 按右鍵選「打開」。
+
+### Linux
+
+```bash
+tar -xzf vRain-Web-*-linux-x64.tar.gz
+cd vRain-Web-linux-x64
+./start.sh
+```
+
+這份 x64 套件需要 glibc 2.33 或更新（Ubuntu 22.04、Debian 12 以及之後的版本）。實際要求寫在套件裡的 `runtime/GLIBC.txt`。自動建置只包含 x64；在 arm64 機器上可以執行 `bash packaging/build.sh` 自行打包。
+
+網頁預設繁體中文，可切換英文。可以選擇或新建書籍、上傳文本、字體、封面和 JPEG 書葉，調整版面後生成，並在頁面上看日誌、預覽和下載 PDF。一次只排一本。`books/sample` 是短文範例，`books/01` 是原來的《虞初新志》示例，這兩本不能從網頁刪除。`vrain_mr.pl` 與 `books_mr/` 仍只走命令列。
+
+從原始碼開發時，`./start-web.sh` 會優先使用已經打好的 `runtime/perl`，否則使用系統 Perl（系統 Perl 需要已安裝 `PDF::Builder` 與 `Font::FreeType` 才能真正排版）。自己打包：
+
+```bash
+bash packaging/build.sh
+bash packaging/smoke.sh dist/vRain-Web-*.tar.gz
+```
 
 ## 系統需求
 
