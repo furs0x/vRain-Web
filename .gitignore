@@ -65,3 +65,11 @@ canvas/mr_5.cfg
 canvas/mr_5.jpg
 canvas/mr_5.jpg
 canvas/mr_5.cfg
+
+# vRain Web build and runtime output
+/dist/
+/build/
+/runtime/
+/packaging/cache/
+/web/jobs/
+/books/sample/*.pdf
