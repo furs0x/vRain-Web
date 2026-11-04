@@ -145,6 +145,14 @@ install_strawberry() {
   PERL="$STAGE/runtime/strawberry/perl/bin/perl.exe"
   [ -f "$PERL" ] || die "missing $PERL"
   export PATH="$STAGE/runtime/strawberry/perl/bin:$STAGE/runtime/strawberry/c/bin:$PATH"
+  # Config.pm still points at C:/strawberry. Building Font::FreeType needs the
+  # headers and libperl import library at that prefix.
+  if [ ! -e /c/strawberry ]; then
+    log "junction C:/strawberry -> strawberry runtime"
+    MSYS_NO_PATHCONV=1 cmd //c "mklink /J C:\\strawberry $(native_path "$STAGE/runtime/strawberry")"
+  fi
+  found=$(find /c/strawberry/perl/lib/CORE -name 'libperl*.a' -print | head -1)
+  [ -n "$found" ] || die "C:/strawberry/perl/lib/CORE is missing libperl"
 }
 
 if [ "$PLATFORM" = "windows-x64" ]; then
