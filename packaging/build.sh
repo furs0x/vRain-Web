@@ -314,13 +314,17 @@ ft_dir=$(dirname "$ft_dir")
   if [ "$PLATFORM" = "windows-x64" ]; then
     # The runner may already have C:/strawberry. MakeMaker reads that tree,
     # then asks for headers this portable build does not ship.
+    # cmd.exe treats \r inside a quoted /c string as a carriage return,
+    # which splits "...\runtime\..." into a bogus "untime" command.
+    target=$(native_path "$STAGE/runtime/strawberry")
+    target=$(printf '%s' "$target" | tr '\\' '/')
     if [ -e /c/strawberry ]; then
       log "set aside the runner C:/strawberry"
-      MSYS_NO_PATHCONV=1 cmd //c "if exist C:\\strawberry.host-saved rmdir /S /Q C:\\strawberry.host-saved"
-      MSYS_NO_PATHCONV=1 cmd //c "move C:\\strawberry C:\\strawberry.host-saved"
+      MSYS_NO_PATHCONV=1 cmd //c "if exist C:/strawberry.host-saved rmdir /S /Q C:/strawberry.host-saved"
+      MSYS_NO_PATHCONV=1 cmd //c "move C:/strawberry C:/strawberry.host-saved"
     fi
-    log "junction C:/strawberry to the unpacked Perl"
-    MSYS_NO_PATHCONV=1 cmd //c "mklink /J C:\\strawberry $(native_path "$STAGE/runtime/strawberry")"
+    log "junction C:/strawberry to $target"
+    MSYS_NO_PATHCONV=1 cmd //c "mklink /J C:/strawberry $target"
     [ -f /c/strawberry/perl/lib/CORE/libperl540.a ] || die "libperl540.a is not visible at C:/strawberry"
   fi
   "$PERL" Makefile.PL
