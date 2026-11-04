@@ -35,7 +35,15 @@ if [ -d "$SRC" ]; then
 else
   mkdir -p "$WORKDIR/extract"
   case "$SRC" in
-    *.zip) tar -xf "$SRC" -C "$WORKDIR/extract" ;;
+    *.zip)
+      if [ -x /c/Windows/System32/tar.exe ]; then
+        MSYS_NO_PATHCONV=1 /c/Windows/System32/tar.exe -xf "$(cygpath -m "$SRC")" -C "$(cygpath -m "$WORKDIR/extract")"
+      elif command -v unzip >/dev/null 2>&1; then
+        unzip -q "$SRC" -d "$WORKDIR/extract"
+      else
+        tar -xf "$SRC" -C "$WORKDIR/extract"
+      fi
+      ;;
     *.tar.gz|*.tgz) tar -xzf "$SRC" -C "$WORKDIR/extract" ;;
     *) echo "unknown archive: $SRC" >&2; exit 1 ;;
   esac

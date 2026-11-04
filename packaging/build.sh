@@ -29,6 +29,11 @@ native_path() {
   fi
 }
 
+# Git Bash tar is GNU tar and will not unpack a zip. Windows ships bsdtar.
+win_tar() {
+  MSYS_NO_PATHCONV=1 /c/Windows/System32/tar.exe "$@"
+}
+
 download() {
   url=$1
   dest=$2
@@ -126,7 +131,7 @@ install_strawberry() {
   work="$ROOT/build/perl-extract"
   rm -rf "$work"
   mkdir -p "$work"
-  tar -xf "$CACHE/$zipname" -C "$work"
+  win_tar -xf "$(native_path "$CACHE/$zipname")" -C "$(native_path "$work")"
   found=$(find "$work" -type f -name perl.exe | head -1)
   [ -n "$found" ] || die "perl.exe not found in Strawberry archive"
   src=$(dirname "$(dirname "$(dirname "$found")")")
@@ -255,14 +260,34 @@ if [ ! -x "$CPANM" ] && [ ! -f "$CPANM.bat" ]; then
   curl -fsSL https://cpanmin.us | "$PERL" - App::cpanminus
 fi
 if [ -x "$CPANM" ]; then
-  "$CPANM" --notest PDF::Builder
-  "$CPANM" --notest Font::FreeType
+  "$CPANM" --notest PDF::Builder Devel::CheckLib File::Which
 elif [ -f "$CPANM.bat" ]; then
-  cmd //c "$(native_path "$CPANM.bat")" --notest PDF::Builder
-  cmd //c "$(native_path "$CPANM.bat")" --notest Font::FreeType
+  cmd //c "$(native_path "$CPANM.bat")" --notest PDF::Builder Devel::CheckLib File::Which
 else
   die "cpanm was not installed"
 fi
+
+# Link the static archive by path. macOS ld otherwise prefers a Homebrew
+# libfreetype.dylib, and Devel::CheckLib rejects -Wl flags in --libs.
+log "build Font::FreeType against static FreeType"
+ft_src="$ROOT/build/Font-FreeType"
+rm -rf "$ft_src"
+mkdir -p "$ft_src"
+download "https://cpan.metacpan.org/authors/id/D/DM/DMOL/Font-FreeType-0.18.tar.gz" "$CACHE/Font-FreeType-0.18.tar.gz"
+tar -xzf "$CACHE/Font-FreeType-0.18.tar.gz" -C "$ft_src"
+ft_dir=$(find "$ft_src" -name Makefile.PL -print | head -1)
+[ -n "$ft_dir" ] || die "Font::FreeType sources missing"
+ft_dir=$(dirname "$ft_dir")
+(
+  cd "$ft_dir"
+  "$PERL" Makefile.PL
+  ft_a=$(native_path "$FT_LIB")
+  "$PERL" -i.bak -pe 'BEGIN { $lib = shift } s/-lfreetype\b/$lib/g' "$ft_a" Makefile
+  grep -F "$ft_a" Makefile >/dev/null || die "Font::FreeType Makefile does not use the static library"
+  makebin=$("$PERL" -MConfig -e 'print $Config{make}')
+  "$makebin"
+  "$makebin" install
+)
 
 log "verify font engine"
 "$PERL" -MPDF::Builder -e 'print "PDF::Builder ", PDF::Builder->VERSION, "\n"'
@@ -274,12 +299,13 @@ so=$(find "$STAGE/runtime" -type f \( -name 'FreeType.so' -o -name 'FreeType.bun
 log "extension $so"
 case "$PLATFORM" in
   linux-*)
-    if ldd "$so" | grep -i freetype; then
+    if ldd "$so" | grep -E 'libfreetype\.so'; then
       die "Font::FreeType is still linked to a shared libfreetype"
     fi
     ;;
   darwin-*)
-    if otool -L "$so" | grep -i freetype; then
+    if otool -L "$so" | grep -E 'libfreetype[^/]*\.dylib'; then
+      otool -L "$so" >&2
       die "Font::FreeType is still linked to a shared libfreetype"
     fi
     ;;
@@ -451,7 +477,7 @@ mv "$STAGE" "$ROOT/dist/vRain-Web-$PLATFORM"
 archive_base="vRain-Web-${VERSION}-${PLATFORM}"
 if [ "$PLATFORM" = "windows-x64" ]; then
   rm -f "$ROOT/dist/${archive_base}.zip"
-  tar -a -cf "$ROOT/dist/${archive_base}.zip" -C "$ROOT/dist" "vRain-Web-$PLATFORM"
+  win_tar -a -cf "$(native_path "$ROOT/dist/${archive_base}.zip")" -C "$(native_path "$ROOT/dist")" "vRain-Web-$PLATFORM"
   log "wrote dist/${archive_base}.zip"
 else
   rm -f "$ROOT/dist/${archive_base}.tar.gz"
