@@ -22,7 +22,7 @@
 #       PDF::Builder        — PDF generation
 #       Font::FreeType      — font glyph detection and metrics
 #       Image::Magick       — background image generation (canvas/*.pl)
-#       Ghostscript (gs)    — PDF compression (-c option)
+#       PDF::Builder flate  — PDF compression (-c), no Ghostscript required
 #
 #==============================================================================
 use strict;
@@ -406,7 +406,11 @@ my $comment_comma_nop_tmp = $comment_comma_nop;
 $text_comma_nop =~ s/\|//g;
 $comment_comma_nop =~ s/\|//g;
 
-my $vpdf = PDF::Builder->new(compress => 'none'); #创建PDF文件
+# -c 用 PDF::Builder 自带的 Flate 压缩，各系统都能用，不必安装 Ghostscript。
+# 不加 -c 时仍不压缩，版面和原来的 PDF 字节布局保持一致。
+my $pdf_compress = 'none';
+$pdf_compress = 'flate' if defined $opts{'c'};
+my $vpdf = PDF::Builder->new(compress => $pdf_compress); #创建PDF文件
 
 # ============================================================================
 # PDF 文档初始化与封面生成
@@ -956,28 +960,21 @@ if($title_directory == 1) {
 my $pdfn = "《$title》文本$from"."至$to";
 
 $pdfn = $pdfn.'_test' if($opts{'z'});
-print "生成PDF文件'books/$book_id/$pdfn.pdf'...";
-$vpdf->save("books/$book_id/$pdfn.pdf");
-print "完成！\n";
 
 if(defined $opts{'c'}) {
-    my $input = "books/$book_id/$pdfn.pdf";
-    my $output = "books/$book_id/$pdfn".'_已压缩.pdf';
-
-    if($^O =~ m/darwin/i) {
-        print "压缩PDF文件'$output'...";
-        #使用ghostscript指令压缩PDF文件
-        `gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/screen -dNOPAUSE -dQUIET -dBATCH -sOutputFile=$output $input`;
-        `rm $input`;
-        print "完成！\n";
-    }
-
+    my $out = $pdfn.'_已压缩';
+    print "生成PDF文件'books/$book_id/$out.pdf'...";
+    $vpdf->save("books/$book_id/$out.pdf");
+    print "完成！\n";
     my $fptmp = $pdfn.'_已压缩.tmp';
     open FPTMP, "> books/$book_id/$fptmp";
     print FPTMP join '|', @fpages;
     close(FPTMP);
 } else {
-    print "建议：使用'-c'参数对PDF文件进行压缩！\n"
+    print "生成PDF文件'books/$book_id/$pdfn.pdf'...";
+    $vpdf->save("books/$book_id/$pdfn.pdf");
+    print "完成！\n";
+    print "建议：使用'-c'参数压缩 PDF。\n"
 }
 
 # print_welcome — 打印欢迎信息
@@ -994,7 +991,7 @@ sub print_help {
    ./$software\t$version，兀雨古籍刻本直排电子书制作工具
     -h\t帮助信息
     -v\t显示更多信息
-    -c\t压缩PDF（MacOS）
+    -c\t压缩PDF（内置 Flate，不必安装 Ghostscript）
     -z\t测试模式，仅输出指定页数，生成带test标识的PDF文件，用于调试参数
     -b\t书籍ID
       \t书籍文本需保存在书籍ID的text目录下，多文本时采用001、002...不间断命名以确保顺序处理

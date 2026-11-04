@@ -18,8 +18,10 @@
       to: "结束序号",
       test: "测试页数",
       testHint: "0 表示全书。序号是文件名排序后的顺序，与命令行 -f -t 相同。",
-      compress: "用 Ghostscript 压缩",
-      needGs: "未找到 Ghostscript，压缩先关掉。生成 PDF 不需要它。",
+      compress: "压缩 PDF",
+      quit: "退出",
+      confirmQuit: "退出兀雨？正在排版的工作会一起停掉。",
+      quitDone: "已经退出。可以关掉这个标签页。",
       preview: "预览",
       download: "下载 PDF",
       noPdf: "还没有 PDF。",
@@ -64,8 +66,10 @@
       to: "結束序號",
       test: "測試頁數",
       testHint: "0 表示全書。序號是檔名排序後的順序，與命令列 -f -t 相同。",
-      compress: "用 Ghostscript 壓縮",
-      needGs: "未找到 Ghostscript，壓縮先關掉。產生 PDF 不需要它。",
+      compress: "壓縮 PDF",
+      quit: "結束",
+      confirmQuit: "結束兀雨？正在排版的工作會一起停掉。",
+      quitDone: "已經結束。可以關掉這個分頁。",
       preview: "預覽",
       download: "下載 PDF",
       noPdf: "還沒有 PDF。",
@@ -110,8 +114,10 @@
       to: "To",
       test: "Test pages",
       testHint: "0 typesets the whole book. Indexes follow filename order, same as -f and -t.",
-      compress: "Compress with Ghostscript",
-      needGs: "Ghostscript was not found, so compression stays off. PDFs still generate without it.",
+      compress: "Compress PDF",
+      quit: "Quit",
+      confirmQuit: "Quit vRain? A typesetting job in progress will stop.",
+      quitDone: "vRain has quit. You can close this tab.",
       preview: "Preview",
       download: "Download PDF",
       noPdf: "No PDF yet.",
@@ -528,8 +534,6 @@
     }).join("");
     const moduleWarn = state.health && state.health.modules === false
       ? '<div class="modules">' + esc(t("noModules")) + "</div>" : "";
-    const gsHint = state.health && state.health.ghostscript === false
-      ? '<p class="meta">' + esc(t("needGs")) + "</p>" : "";
     const jobClass = state.job ? state.job.status : "idle";
     const jobText = !state.job ? t("idle") : (state.job.status === "running" ? t("running") : state.job.status === "done" ? t("done") : t("failed"));
 
@@ -538,6 +542,7 @@
         '<div class="seal">兀雨</div>' +
         '<div class="brand"><h1>vRain</h1><p>' + esc(t("tagline")) + "</p></div>" +
         '<div class="spacer"></div>' +
+        '<button type="button" class="ghost" data-act="quit">' + esc(t("quit")) + "</button>" +
         '<div class="langs" role="group">' + LANGS.map(function (item) {
           const on = state.lang === item[0];
           return '<button type="button" class="ghost lang' + (on ? " selected" : "") + '" data-act="lang" data-lang="' + item[0] + '" aria-pressed="' + (on ? "true" : "false") + '">' + esc(item[1]) + "</button>";
@@ -579,9 +584,9 @@
           '<label>' + esc(t("from")) + ' <input id="from" type="number" min="1" value="' + esc(state.from) + '"></label>' +
           '<label>' + esc(t("to")) + ' <input id="to" type="number" min="1" value="' + esc(state.to) + '"></label>' +
           '<label>' + esc(t("test")) + ' <input id="testPages" type="number" min="0" value="' + esc(state.testPages) + '"></label>' +
-          '<label><input id="compress" type="checkbox"' + (state.compress ? " checked" : "") + (state.health && state.health.ghostscript ? "" : " disabled") + "> " + esc(t("compress")) + "</label>" +
+          '<label><input id="compress" type="checkbox"' + (state.compress ? " checked" : "") + "> " + esc(t("compress")) + "</label>" +
         "</div>" +
-        '<p class="meta">' + esc(t("testHint")) + "</p>" + gsHint +
+        '<p class="meta">' + esc(t("testHint")) + "</p>" +
       "</main>" +
       '<section class="preview"><h2>' + esc(t("preview")) + "</h2>" + pdfBlock() +
         "<h2>" + esc(t("log")) + '</h2><p class="jobstate ' + esc(jobClass) + '" id="jobstate">' + esc(jobText) + "</p>" +
@@ -746,6 +751,14 @@
     const btn = event.target.closest("[data-act]");
     if (!btn) return;
     const act = btn.dataset.act;
+    if (act === "quit") {
+      if (!confirm(t("confirmQuit"))) return;
+      const done = function () {
+        document.body.innerHTML = '<p class="banner">' + esc(t("quitDone")) + "</p>";
+      };
+      api("/api/shutdown", { method: "POST", json: {} }).then(done).catch(done);
+      return;
+    }
     if (act === "lang") {
       const next = normalizeLang(btn.dataset.lang);
       if (next === state.lang) return;

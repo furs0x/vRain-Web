@@ -20,6 +20,7 @@ use POSIX qw(WNOHANG strftime);
 
 our $WEB_VERSION = '1.0.0';
 our $ENGINE_VERSION = '1.5.1';
+our $SHUTDOWN = 0;
 
 my $ROOT = $ENV{VRAIN_ROOT} || File::Spec->rel2abs(File::Spec->catdir($FindBin::Bin, '..'));
 chdir $ROOT or die "chdir $ROOT: $!\n";
@@ -94,6 +95,10 @@ while (1) {
         warn "request failed: $err\n" if $code >= 500;
     }
     close $client;
+    if ($SHUTDOWN) {
+        print "停止 / stopping\n";
+        exit 0;
+    }
 }
 
 sub listen_server {
@@ -164,6 +169,11 @@ sub handle_client {
     }
     if ($method eq 'GET' && $path eq '/api/health') {
         return send_json($client, 200, 'OK', health());
+    }
+    if ($method eq 'POST' && $path eq '/api/shutdown') {
+        stop_jobs();
+        $SHUTDOWN = 1;
+        return send_json($client, 200, 'OK', { ok => JSON::PP::true });
     }
     if ($method eq 'GET' && $path eq '/api/catalog') {
         return send_json($client, 200, 'OK', catalog());
@@ -725,30 +735,16 @@ sub health {
         platform      => $^O,
         arch          => $Config{archname},
         port          => $PORT,
-        ghostscript   => has_gs() ? JSON::PP::true : JSON::PP::false,
+        compression   => 'flate',
         modules       => $ok ? JSON::PP::true : JSON::PP::false,
         moduleError   => $err,
     };
 }
 
-sub has_cmd {
-    my ($name) = @_;
-    my $sep = $^O eq 'MSWin32' ? ';' : ':';
-    my @ext = $^O eq 'MSWin32'
-        ? split(/;/, ($ENV{PATHEXT} || '.COM;.EXE;.BAT;.CMD'))
-        : ('');
-    for my $dir (split /\Q$sep\E/, ($ENV{PATH} || '')) {
-        next if !defined $dir || $dir eq '';
-        for my $ext (@ext) {
-            my $path = File::Spec->catfile($dir, $name . $ext);
-            return 1 if -f $path && ($^O eq 'MSWin32' || -x $path);
-        }
-    }
-    return 0;
-}
-
-sub has_gs {
-    return has_cmd('gs') || has_cmd('gswin64c') || has_cmd('gswin32c');
+sub stop_jobs {
+    my $cur = read_current();
+    return unless $cur && process_alive($cur->{pid});
+    kill 9, $cur->{pid};
 }
 
 sub create_book {
@@ -827,7 +823,6 @@ sub start_job {
     die "400 测试页数不合法 / bad test page count\n"
         unless "$test" =~ /\A\d+\z/ && $test <= 500;
     my $compress = $data->{compress} ? 1 : 0;
-    die "400 未找到 Ghostscript，不能压缩 / Ghostscript not found\n" if $compress && !has_gs();
 
     my $cur = read_current();
     if ($cur && process_alive($cur->{pid})) {
