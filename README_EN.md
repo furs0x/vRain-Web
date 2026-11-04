@@ -7,7 +7,7 @@
 
 vRain is a Perl-based toolchain that converts Chinese text into elegantly typeset vertical-layout PDF e-books in the style of traditional woodblock-printed editions. It supports multiple classic formats (movable type, bamboo slips, game records, etc.), multi-font fallback for rare characters, and automatic font metric adjustment for visual consistency.
 
-[中文繁體文檔](README.md)
+[简体中文文档](readme.MD)
 
 ## Features
 
@@ -60,7 +60,7 @@ cd vRain-Web-linux-x64
 
 The x64 package needs glibc 2.33 or newer (Ubuntu 22.04, Debian 12, and later). The exact requirement is in `runtime/GLIBC.txt` inside the package. Automated builds are x64 only; on an arm64 machine, `bash packaging/build.sh` produces a package there.
 
-The page defaults to Traditional Chinese and can switch to English. Pick or create a book, upload text, a font, a cover, or a JPEG canvas, then generate, watch the log, and preview or download the PDF. One typesetting job runs at a time. `books/sample` is a short example and `books/01` is the original 虞初新志 book; the page will not delete those two. `vrain_mr.pl` and `books_mr/` stay on the command line.
+The page defaults to Simplified Chinese and can switch to Traditional Chinese or English. Pick or create a book, upload text, a font, a cover, or a JPEG canvas, then generate, watch the log, and preview or download the PDF. One typesetting job runs at a time. `books/sample` is a short example and `books/01` is the original 虞初新志 book; the page will not delete those two. `vrain_mr.pl` and `books_mr/` stay on the command line.
 
 For development, `./start-web.sh` prefers a previously built `runtime/perl` and otherwise uses system Perl (system Perl needs `PDF::Builder` and `Font::FreeType` before it can typeset). To build a package yourself:
 

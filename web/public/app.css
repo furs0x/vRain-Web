@@ -88,7 +88,9 @@ textarea { resize: vertical; line-height: 1.55; }
 .brand h1 { margin: 0; font-size: 28px; font-weight: 600; letter-spacing: 0.08em; }
 .brand p { margin: 0; color: var(--muted); font-size: 14px; }
 .spacer { flex: 1; }
-.lang { min-width: 72px; }
+.langs { display: flex; gap: 6px; }
+.lang { min-width: 0; }
+.lang.selected { border-color: var(--seal); color: var(--seal); background: rgba(143, 45, 42, 0.08); }
 
 .banner {
   grid-column: 1 / -1;

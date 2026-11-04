@@ -455,22 +455,22 @@ $extra"
   fi
   cat > "$STAGE/README.txt" << EOF
 vRain Web $VERSION ($PLATFORM)
-兀雨可攜式套件。解壓後直接執行，不必另外安裝 Perl、字體或 ImageMagick。
+兀雨便携包。解压后直接运行，不必另外安装 Perl、字体或 ImageMagick。
 
-Windows: 解壓 zip，雙擊 START.bat。若 SmartScreen 攔截，選「仍要執行」。
-macOS:   tar -xzf 套件後，雙擊 start.command。若 Gatekeeper 攔截未簽名程式：
+Windows: 解压 zip，双击 START.bat。若 SmartScreen 拦截，选「仍要运行」。
+macOS:   tar -xzf 压缩包后，双击 start.command。若 Gatekeeper 拦截未签名程序：
          xattr -dr com.apple.quarantine .
-Linux:   tar -xzf 套件後，在終端機執行 ./start.sh
+Linux:   tar -xzf 压缩包后，在终端执行 ./start.sh
 $glibc_line
 
-瀏覽器會打開 http://127.0.0.1:8787/ （只聽本機）。
-命令列仍可用：
+浏览器会打开 http://127.0.0.1:8787/ （只监听本机）。界面默认简体中文，可切换繁体中文和 English。
+命令行仍可用：
   ./vrain -b sample -f 1 -t 1 -z 1
   ./perl vrain.pl -h
-Windows 請改用 vrain.bat 與 perl.bat。
+Windows 请改用 vrain.bat 与 perl.bat。
 
-書葉背景圖已經附在套件裡。canvas/*.pl 重繪背景仍需要系統上的 ImageMagick，
-網頁介面不依賴它。PDF 壓縮（-c）需要 Ghostscript，沒有時仍可產生 PDF。
+书叶背景图已经附在包里。canvas/*.pl 重绘背景仍需要系统上的 ImageMagick，
+网页界面不依赖它。PDF 压缩（-c）需要 Ghostscript，没有时仍可生成 PDF。
 EOF
 }
 

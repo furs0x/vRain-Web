@@ -2,7 +2,53 @@
   "use strict";
 
   const I18N = {
-    zh: {
+    "zh-Hans": {
+      tagline: "古籍刻本直排 · 只在这台电脑上运行",
+      library: "书库",
+      newBook: "新书",
+      idPh: "书籍 ID，例如 mybook",
+      titlePh: "书名",
+      authorPh: "作者",
+      create: "建立",
+      dup: "复制当前这本",
+      del: "删除",
+      save: "保存",
+      gen: "开始排版",
+      from: "起始序号",
+      to: "结束序号",
+      test: "测试页数",
+      testHint: "0 表示全书。序号是文件名排序后的顺序，与命令行 -f -t 相同。",
+      compress: "用 Ghostscript 压缩",
+      needGs: "未找到 Ghostscript，压缩先关掉。生成 PDF 不需要它。",
+      preview: "预览",
+      download: "下载 PDF",
+      noPdf: "还没有 PDF。",
+      log: "日志",
+      text: "正文",
+      textFile: "文本文件",
+      addText: "新增一个文件",
+      uploadText: "上传 .txt",
+      raw: "原始 book.cfg",
+      saveRaw: "保存原始设定",
+      uploadFont: "上传字体",
+      uploadBg: "上传 JPEG 底图",
+      bgIdPh: "新底图 ID",
+      helpTitle: "正文标记",
+      helpBody: "@ 代表空格。% 换叶。$ 换半叶。& 跳到本叶最后一列。\n【】双行小字批注。《》书名侧线。〔〕圆角框。〈〉圆框。\n（）字级缩放。｛｝圈注。＜＞点注。［］线注。\n行首 T 表示这一行顶格。设定值里的空格会被 vrain.pl 去掉。",
+      noModules: "这个 Perl 缺少 PDF::Builder 或 Font::FreeType。请改用便携套件里的启动程序，不要用系统里另外装的 Perl。",
+      running: "排版中",
+      done: "完成",
+      failed: "失败",
+      saved: "已保存",
+      confirmDel: "确定删除这本书？文本和 PDF 会一起删掉。",
+      newId: "新书 ID（英数，不能有空格）",
+      canvas: "书叶背景",
+      cols: "列",
+      cover: "上传封面 JPEG",
+      idle: "尚未排版",
+      open: "打开"
+    },
+    "zh-Hant": {
       tagline: "古籍刻本直排 · 只在這台電腦上執行",
       library: "書庫",
       newBook: "新書",
@@ -45,7 +91,6 @@
       canvas: "書葉背景",
       cols: "列",
       cover: "上傳封面 JPEG",
-      langName: "EN",
       idle: "尚未排版",
       open: "開啟"
     },
@@ -92,19 +137,24 @@
       canvas: "Page background",
       cols: "cols",
       cover: "Upload cover JPEG",
-      langName: "繁",
       idle: "Idle",
       open: "Open"
     }
   };
 
   const GROUPS = [
-    { id: "book", zh: "書籍", en: "Book", open: true },
-    { id: "layout", zh: "版面", en: "Layout", open: true },
-    { id: "font", zh: "字體", en: "Fonts", open: true },
-    { id: "cover", zh: "封面與版心", en: "Cover and fold", open: false },
-    { id: "punct", zh: "標點", en: "Punctuation", open: false },
-    { id: "mark", zh: "標記", en: "Marks", open: false }
+    { id: "book", hans: "书籍", hant: "書籍", en: "Book", open: true },
+    { id: "layout", hans: "版面", hant: "版面", en: "Layout", open: true },
+    { id: "font", hans: "字体", hant: "字體", en: "Fonts", open: true },
+    { id: "cover", hans: "封面与版心", hant: "封面與版心", en: "Cover and fold", open: false },
+    { id: "punct", hans: "标点", hant: "標點", en: "Punctuation", open: false },
+    { id: "mark", hans: "标记", hant: "標記", en: "Marks", open: false }
+  ];
+
+  const LANGS = [
+    ["zh-Hans", "简体"],
+    ["zh-Hant", "繁體"],
+    ["en", "English"]
   ];
 
   const FIELDS = [
@@ -220,8 +270,127 @@
     ["mark", "text_note_lc", "線注顏色", "Line note color", false]
   ];
 
+  const HANS = {
+    "書名": "书名",
+    "每列字數": "每列字数",
+    "列末微調": "列末微调",
+    "多欄橫排": "多栏横排",
+    "主字體": "主字体",
+    "字體 2": "字体 2",
+    "字體 3": "字体 3",
+    "字體 4": "字体 4",
+    "字體 5": "字体 5",
+    "正文字體順序": "正文字体顺序",
+    "正文 1 字號": "正文 1 字号",
+    "正文 2 字號": "正文 2 字号",
+    "正文 3 字號": "正文 3 字号",
+    "正文 4 字號": "正文 4 字号",
+    "正文 5 字號": "正文 5 字号",
+    "正文顏色": "正文颜色",
+    "批注字體順序": "批注字体顺序",
+    "批注 1 字號": "批注 1 字号",
+    "批注 2 字號": "批注 2 字号",
+    "批注 3 字號": "批注 3 字号",
+    "批注 4 字號": "批注 4 字号",
+    "批注 5 字號": "批注 5 字号",
+    "批注顏色": "批注颜色",
+    "字體 1 旋轉": "字体 1 旋转",
+    "字體 2 旋轉": "字体 2 旋转",
+    "字體 3 旋轉": "字体 3 旋转",
+    "字體 4 旋轉": "字体 4 旋转",
+    "字體 5 旋轉": "字体 5 旋转",
+    "字體度量微調": "字体度量微调",
+    "回退字體加粗": "回退字体加粗",
+    "加粗描邊": "加粗描边",
+    "封面書名字號": "封面书名字号",
+    "封面書名位置": "封面书名位置",
+    "封面作者字號": "封面作者字号",
+    "封面顏色": "封面颜色",
+    "版心標題字號": "版心标题字号",
+    "版心標題顏色": "版心标题颜色",
+    "版心標題位置": "版心标题位置",
+    "標題字距": "标题字距",
+    "標題後綴": "标题后缀",
+    "產生目錄": "产生目录",
+    "頁碼字號": "页码字号",
+    "頁碼顏色": "页码颜色",
+    "頁碼位置": "页码位置",
+    "標點歸一為句號": "标点归一为句号",
+    "無標點模式": "无标点模式",
+    "標點替換": "标点替换",
+    "數字替換": "数字替换",
+    "刪除符號": "删除符号",
+    "歸一句號的符號": "归一句号的符号",
+    "無標點時刪除": "无标点时删除",
+    "正文不佔位標點": "正文不占位标点",
+    "不佔位大小": "不占位大小",
+    "不佔位橫移": "不占位横移",
+    "不佔位縱移": "不占位纵移",
+    "正文旋轉標點": "正文旋转标点",
+    "旋轉大小": "旋转大小",
+    "旋轉橫移": "旋转横移",
+    "旋轉縱移": "旋转纵移",
+    "批注不佔位標點": "批注不占位标点",
+    "批注不佔位大小": "批注不占位大小",
+    "批注不佔位橫移": "批注不占位横移",
+    "批注不佔位縱移": "批注不占位纵移",
+    "批注旋轉標點": "批注旋转标点",
+    "批注旋轉大小": "批注旋转大小",
+    "批注旋轉橫移": "批注旋转横移",
+    "批注旋轉縱移": "批注旋转纵移",
+    "《》書名側線": "《》书名侧线",
+    "側線寬": "侧线宽",
+    "側線顏色": "侧线颜色",
+    "〔〕圓角框": "〔〕圆角框",
+    "框線色": "框线色",
+    "正文框縱移": "正文框纵移",
+    "正文框圓角": "正文框圆角",
+    "批注框縱移": "批注框纵移",
+    "批注框圓角": "批注框圆角",
+    "〈〉圓框": "〈〉圆框",
+    "圓框型": "圆框型",
+    "圓框線色": "圆框线色",
+    "圓框填色": "圆框填色",
+    "正文圓縱移": "正文圆纵移",
+    "正文圓半徑": "正文圆半径",
+    "正文圓比例": "正文圆比例",
+    "批注圓縱移": "批注圆纵移",
+    "批注圓半徑": "批注圆半径",
+    "批注圓比例": "批注圆比例",
+    "（）縮放": "（）缩放",
+    "縮放倍率": "缩放倍率",
+    "圈注橫移": "圈注横移",
+    "圈注縱移": "圈注纵移",
+    "圈注半徑": "圈注半径",
+    "圈注線寬": "圈注线宽",
+    "圈注顏色": "圈注颜色",
+    "＜＞點注": "＜＞点注",
+    "點注橫移": "点注横移",
+    "點注縱移": "点注纵移",
+    "點注大小": "点注大小",
+    "點注顏色": "点注颜色",
+    "［］線注": "［］线注",
+    "線注橫移": "线注横移",
+    "線注縱移": "线注纵移",
+    "線注線寬": "线注线宽",
+    "線注顏色": "线注颜色"
+  };
+
+  function normalizeLang(raw) {
+    if (raw === "en") return "en";
+    if (raw === "zh" || raw === "zh-Hant" || raw === "zh-TW") return "zh-Hant";
+    if (raw === "zh-Hans" || raw === "zh-CN") return "zh-Hans";
+    return "zh-Hans";
+  }
+
+  function htmlLang() {
+    if (state.lang === "zh-Hant") return "zh-Hant";
+    if (state.lang === "en") return "en";
+    return "zh-Hans";
+  }
+
   const state = {
-    lang: localStorage.getItem("vrain-lang") || "zh",
+    lang: normalizeLang(localStorage.getItem("vrain-lang")),
     catalog: null,
     health: null,
     bookId: null,
@@ -239,7 +408,9 @@
   };
 
   function t(key) {
-    return (I18N[state.lang] && I18N[state.lang][key]) || I18N.zh[key] || key;
+    const pack = I18N[state.lang] || I18N["zh-Hans"];
+    if (pack[key] != null) return pack[key];
+    return I18N["zh-Hans"][key] != null ? I18N["zh-Hans"][key] : key;
   }
 
   function esc(s) {
@@ -299,7 +470,7 @@
   function renderFields(group) {
     return FIELDS.filter(function (f) { return f[0] === group; }).map(function (f) {
       const key = f[1];
-      const label = state.lang === "en" ? f[3] : f[2];
+      const label = state.lang === "en" ? f[3] : state.lang === "zh-Hant" ? f[2] : (HANS[f[2]] || f[2]);
       const wide = f[4] ? " wide" : "";
       const kind = f[5] || "text";
       const value = fieldValue(key);
@@ -350,7 +521,7 @@
         esc(b.title || b.id) + "<small>" + esc(b.id) + (b.author ? " · " + esc(b.author) : "") + "</small></button>";
     }).join("");
     const groups = GROUPS.map(function (g) {
-      const label = state.lang === "en" ? g.en : g.zh;
+      const label = state.lang === "en" ? g.en : state.lang === "zh-Hant" ? g.hant : g.hans;
       const extra = g.id === "layout" ? '<div class="field wide"><span>' + esc(t("canvas")) + "</span>" + canvasBar() + "</div>" : "";
       return "<details " + (g.open ? "open" : "") + "><summary>" + esc(label) + "</summary><div class=\"fields\">" +
         extra + renderFields(g.id) + "</div></details>";
@@ -367,7 +538,10 @@
         '<div class="seal">兀雨</div>' +
         '<div class="brand"><h1>vRain</h1><p>' + esc(t("tagline")) + "</p></div>" +
         '<div class="spacer"></div>' +
-        '<button type="button" class="ghost lang" data-act="lang">' + esc(t("langName")) + "</button>" +
+        '<div class="langs" role="group">' + LANGS.map(function (item) {
+          const on = state.lang === item[0];
+          return '<button type="button" class="ghost lang' + (on ? " selected" : "") + '" data-act="lang" data-lang="' + item[0] + '" aria-pressed="' + (on ? "true" : "false") + '">' + esc(item[1]) + "</button>";
+        }).join("") + "</div>" +
       "</header>" +
       '<div id="banner" class="banner"' + (state.message ? "" : " hidden") + ">" + esc(state.message) + "</div>" +
       '<aside class="side"><h2>' + esc(t("library")) + "</h2>" + moduleWarn +
@@ -573,10 +747,12 @@
     if (!btn) return;
     const act = btn.dataset.act;
     if (act === "lang") {
+      const next = normalizeLang(btn.dataset.lang);
+      if (next === state.lang) return;
       syncFromDom();
-      state.lang = state.lang === "zh" ? "en" : "zh";
+      state.lang = next;
       localStorage.setItem("vrain-lang", state.lang);
-      document.documentElement.lang = state.lang === "zh" ? "zh-Hant" : "en";
+      document.documentElement.lang = htmlLang();
       render();
       return;
     }
@@ -743,7 +919,7 @@
     }
   });
 
-  document.documentElement.lang = state.lang === "zh" ? "zh-Hant" : "en";
+  document.documentElement.lang = htmlLang();
   Promise.all([api("/api/health"), api("/api/catalog")]).then(function (pair) {
     state.health = pair[0];
     state.catalog = pair[1];
