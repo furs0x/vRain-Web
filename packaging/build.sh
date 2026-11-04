@@ -314,17 +314,21 @@ ft_dir=$(dirname "$ft_dir")
   if [ "$PLATFORM" = "windows-x64" ]; then
     # The runner may already have C:/strawberry. MakeMaker reads that tree,
     # then asks for headers this portable build does not ship.
-    # cmd.exe treats \r inside a quoted /c string as a carriage return,
-    # which splits "...\runtime\..." into a bogus "untime" command.
-    target=$(native_path "$STAGE/runtime/strawberry")
-    target=$(printf '%s' "$target" | tr '\\' '/')
-    if [ -e /c/strawberry ]; then
-      log "set aside the runner C:/strawberry"
-      MSYS_NO_PATHCONV=1 cmd //c "if exist C:/strawberry.host-saved rmdir /S /Q C:/strawberry.host-saved"
-      MSYS_NO_PATHCONV=1 cmd //c "move C:/strawberry C:/strawberry.host-saved"
-    fi
+    # A quoted "cmd /c" line parses /runtime as the /r switch. A batch
+    # file keeps the backslashes as path characters.
+    target=$(native_path "$STAGE/runtime/strawberry" | tr '/' '\\')
+    bat="$ROOT/build/link-strawberry.bat"
+    {
+      printf '%s\r\n' '@echo off'
+      printf '%s\r\n' 'if exist C:\strawberry.host-saved rmdir /S /Q C:\strawberry.host-saved'
+      printf '%s\r\n' 'if exist C:\strawberry move C:\strawberry C:\strawberry.host-saved'
+      printf 'mklink /J C:\strawberry "%s"\r\n' "$target"
+    } > "$bat"
     log "junction C:/strawberry to $target"
-    MSYS_NO_PATHCONV=1 cmd //c "mklink /J C:/strawberry $target"
+    sed 's/\r$//' "$bat"
+    # A bare cmd /c argument that contains /runtime is parsed as the /r switch.
+    bat_win=$(native_path "$bat" | tr '/' '\\')
+    MSYS_NO_PATHCONV=1 cmd.exe //c "call $bat_win"
     [ -f /c/strawberry/perl/lib/CORE/libperl540.a ] || die "libperl540.a is not visible at C:/strawberry"
   fi
   "$PERL" Makefile.PL
