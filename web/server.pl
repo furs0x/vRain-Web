@@ -114,6 +114,8 @@ sub listen_server {
 
 sub cloexec {
     my ($fh) = @_;
+    # Windows Fcntl has no F_GETFD. Child processes are started with system(1).
+    return if $^O eq 'MSWin32';
     my $flags = fcntl($fh, F_GETFD, 0);
     fcntl($fh, F_SETFD, ($flags || 0) | FD_CLOEXEC) if defined $flags;
 }
