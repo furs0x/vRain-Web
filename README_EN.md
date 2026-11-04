@@ -19,46 +19,56 @@ vRain is a Perl-based toolchain that converts Chinese text into elegantly typese
 - **Interlinear Commentary**: Double-row small-text commentary via `【】` markers
 - **Rich Annotation System**: Wavy book-title lines, rounded-corner frames, circle frames, circle/dot/line emphasis markers, font scaling
 - **Automatic Table of Contents**: Chapter titles automatically extracted as PDF outline bookmarks
-- **PDF Compression**: Optional Ghostscript-based output compression
+- **PDF Compression**: `-c` uses PDF::Builder's built-in Flate compression. Ghostscript is not required
 
 ## Download and run
 
-Windows, macOS, and Linux each have a compressed package. Extract it and start the launcher. A browser opens a page bound to this machine. Perl, fonts, and ImageMagick do not need to be installed separately.
+Each system gets one file. Double-click it and a browser opens a page on this machine. There is nothing to unzip and nothing else to install: Perl, fonts, ImageMagick, and Ghostscript are not required.
 
-Each package carries its own Perl: [relocatable-perl](https://github.com/skaji/relocatable-perl) 5.42 on Linux and macOS, and portable [Strawberry Perl](https://github.com/StrawberryPerl/Perl-Dist-Strawberry) on Windows. `web/server.pl` is a small HTTP server written with Perl core modules. It listens on `127.0.0.1:8787` (and the next 20 ports if that one is busy), collects the book, canvas, fonts, and `book.cfg` settings, then runs the existing `vrain.pl`. The typesetter is unchanged. `Font::FreeType` is linked against a static FreeType 2.13 at package time, so a system libfreetype is unnecessary. Canvas JPGs ship in the package; ImageMagick is needed only when regenerating a background with `canvas/*.pl`. PDF compression needs a system Ghostscript; without it the PDF is still written. The command-line flags are the same as before.
+| System | File |
+|--------|------|
+| Windows x64 | `vRain-*-windows-x64.exe` |
+| macOS Apple silicon | `vRain-*-macos-arm64.dmg` |
+| macOS Intel | `vRain-*-macos-x64.dmg` |
+| Linux x64 | `vRain-*-linux-x64` |
 
-GitHub Actions builds and smoke-tests `books/sample` on `ubuntu-24.04`, `windows-latest`, `macos-15` (Apple silicon), and `macos-15-intel`. Artifacts are on the workflow run. A `v*` tag also attaches the four packages to a GitHub Release. On a fork, enable Actions in the repository settings. If GitHub holds the first run, approve it before it starts.
+The file carries its own Perl: [relocatable-perl](https://github.com/skaji/relocatable-perl) 5.42 on Linux and macOS, and portable [Strawberry Perl](https://github.com/StrawberryPerl/Perl-Dist-Strawberry) on Windows. A small launcher extracts that runtime into a local cache the first time, keyed by the payload hash, and later launches skip the extract. `web/server.pl` is a small HTTP server written with Perl core modules. It listens on `127.0.0.1:8787` (and the next 20 ports if that one is busy), collects the book, canvas, fonts, and `book.cfg` settings, then runs the existing `vrain.pl`. The typesetter is unchanged. `Font::FreeType` is linked against a static FreeType 2.13 at package time, so a system libfreetype is unnecessary. Canvas JPGs ship in the package; ImageMagick is needed only when regenerating a background from source with `canvas/*.pl`. PDF compression (`-c`) is PDF::Builder Flate on the page streams, without downsampling the canvas image. The Quit button in the page stops the local server.
+
+GitHub Actions builds and smoke-tests `books/sample` on `ubuntu-24.04`, `windows-latest`, `macos-15` (Apple silicon), and `macos-15-intel`. Artifacts are on the workflow run. A `v*` tag attaches the single-file builds and the directory archives to a GitHub Release. On a fork, enable Actions in the repository settings. If GitHub holds the first run, approve it before it starts.
 
 ### Windows
 
-Download `vRain-Web-*-windows-x64.zip`, extract it, and double-click `START.bat`. The binary is unsigned. If SmartScreen blocks it, choose “Run anyway”. From a terminal:
-
-```bat
-vrain.bat -b sample -f 1 -t 1 -z 1
-```
+Double-click `vRain-*-windows-x64.exe`. It does not open a console window. Without a paid Authenticode certificate, SmartScreen shows “Windows protected your PC”. Choose “More info”, then “Run anyway”. That is the operating system’s prompt for an unsigned program.
 
 ### macOS
 
-Apple silicon uses `darwin-arm64`. Intel uses `darwin-x64`.
-
-```bash
-tar -xzf vRain-Web-*-darwin-arm64.tar.gz
-cd vRain-Web-darwin-arm64
-xattr -dr com.apple.quarantine .
-./start.sh
-```
-
-`start.command` does the same thing from Finder. The binary is unsigned, so Gatekeeper blocks a downloaded app until the quarantine flag is cleared or you right-click `start.command` and choose Open.
+Open the dmg and double-click `vRain.app`. The app is ad-hoc signed. Without an Apple notarization certificate, a browser download can still say the app cannot be opened because the developer cannot be verified, or that it is damaged. In Finder, Control-click `vRain.app`, choose Open, and confirm once. Later launches of that copy open directly. A terminal is not required.
 
 ### Linux
 
-```bash
-tar -xzf vRain-Web-*-linux-x64.tar.gz
-cd vRain-Web-linux-x64
-./start.sh
-```
+Open `vRain-*-linux-x64` from the file manager. Browsers save downloads without the executable permission; that is an operating-system limit. Allow the file to run as a program in its properties, then double-click it. The x64 build needs glibc 2.33 or newer (Ubuntu 22.04, Debian 12, and later). Automated builds are x64 only; on an arm64 machine, `bash packaging/build.sh` produces a package there.
 
-The x64 package needs glibc 2.33 or newer (Ubuntu 22.04, Debian 12, and later). The exact requirement is in `runtime/GLIBC.txt` inside the package. Automated builds are x64 only; on an arm64 machine, `bash packaging/build.sh` produces a package there.
+### Signing secrets
+
+The prompts above remain until a paid certificate is added. Put these repository Actions secrets in place and the same workflow signs the build; macOS is notarized as well. If any secret for a platform is missing, that platform stays unsigned or ad-hoc signed.
+
+macOS (a Developer ID Application certificate and an App Store Connect API key):
+
+- `MACOS_CERTIFICATE_P12_BASE64` — base64 of the Developer ID Application `.p12`
+- `MACOS_CERTIFICATE_PASSWORD` — password for that `.p12`
+- `APPLE_TEAM_ID` — 10-character Team ID
+- `APPLE_API_KEY_ID` — API key id
+- `APPLE_API_ISSUER` — issuer UUID
+- `APPLE_API_KEY` — base64 of the `AuthKey_XXXX.p8` file
+
+Windows (an Authenticode code-signing certificate):
+
+- `WINDOWS_CERTIFICATE_PFX_BASE64` — base64 of the `.pfx`
+- `WINDOWS_CERTIFICATE_PASSWORD` — password for that `.pfx`
+
+### Directory archives
+
+The workflow also uploads `vRain-Web-*.zip` and `.tar.gz` for people who want the files unpacked. Windows uses `START.bat` inside the zip, macOS uses `start.command`, and Linux uses `./start.sh`. The single file is the one to double-click.
 
 The page defaults to Simplified Chinese and can switch to Traditional Chinese or English. Pick or create a book, upload text, a font, a cover, or a JPEG canvas, then generate, watch the log, and preview or download the PDF. One typesetting job runs at a time. `books/sample` is a short example and `books/01` is the original 虞初新志 book; the page will not delete those two. `vrain_mr.pl` and `books_mr/` stay on the command line.
 
@@ -75,17 +85,17 @@ bash packaging/smoke.sh dist/vRain-Web-*.tar.gz
 - **PDF::Builder** — PDF generation
 - **Font::FreeType** — Font glyph detection and metrics
 - **Image::Magick** — Background image generation (`canvas/*.pl` scripts)
-- **Ghostscript** (`gs`) — PDF compression (`-c` option, macOS only)
+- **PDF::Builder Flate** — PDF compression (`-c`). Ghostscript is not required
 
 ### Installing Dependencies
 
 ```bash
 # macOS (Homebrew)
-brew install perl imagemagick ghostscript
+brew install perl imagemagick
 cpan install PDF::Builder Font::FreeType
 
 # Linux (Debian/Ubuntu)
-sudo apt-get install perl imagemagick ghostscript
+sudo apt-get install perl imagemagick
 cpan install PDF::Builder Font::FreeType
 ```
 
@@ -101,7 +111,7 @@ perl vrain.pl -b 00 -f 1 -t 80
 # Test mode: output only 5 pages for parameter tuning (suffix _test)
 perl vrain.pl -b 00 -f 1 -t 80 -z 5
 
-# Compress output PDF with Ghostscript (macOS only)
+# Compress the PDF with built-in Flate
 perl vrain.pl -b 00 -f 1 -t 80 -c
 
 # Verbose output showing font selection and scaling details
@@ -122,7 +132,7 @@ cd canvas && perl bamboo.pl -c bamboo
 |--------|-------------|
 | `-h` | Show help information |
 | `-v` | Verbose mode — show font selection, scale factors, etc. |
-| `-c` | Compress PDF with Ghostscript (macOS only) |
+| `-c` | Compress the PDF with built-in Flate and write a `_已压缩` file |
 | `-z <pages>` | Test mode — output only N pages, filename suffixed with `_test` |
 | `-b <book-id>` | Book ID, corresponding to `books/<ID>/` directory |
 | `-f <index>` | Starting text index (ordinal in sorted file list, not filename number) |
