@@ -373,7 +373,9 @@ ft_dir=$(dirname "$ft_dir")
 
 log "verify font engine"
 "$PERL" -MPDF::Builder -e 'print "PDF::Builder ", PDF::Builder->VERSION, "\n"'
-"$PERL" -MFont::FreeType -e 'my $ft = Font::FreeType->new; my $face = $ft->face($ARGV[0]); my $g = $face->glyph_from_char("永"); die "glyph missing\n" unless $g; print "Font::FreeType ok\n"' \
+# U+6C38 is ASCII in this script. A raw UTF-8 character in -e is not
+# decoded by Windows perl, so the glyph lookup misses.
+"$PERL" -MFont::FreeType -e 'my $ft = Font::FreeType->new; my $face = $ft->face($ARGV[0]); my $g = $face->glyph_from_char("\x{6C38}"); die "glyph missing\n" unless $g; print "Font::FreeType ok\n"' \
   "$ROOT/fonts/qiji-combo.ttf"
 
 so=$(find "$STAGE/runtime" -type f \( -name 'FreeType.so' -o -name 'FreeType.bundle' -o -name 'FreeType.dll' -o -name '*.xs.dll' \) | head -1)
