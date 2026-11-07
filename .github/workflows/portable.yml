@@ -71,6 +71,14 @@ jobs:
       - name: Build
         env:
           PLATFORM: ${{ matrix.platform }}
+          MACOS_CERTIFICATE_P12_BASE64: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          WINDOWS_CERTIFICATE_PFX_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_PFX_BASE64 }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
         run: |
           case "$GITHUB_REF" in
             refs/tags/v*) export VRAIN_VERSION="$GITHUB_REF_NAME" ;;
@@ -94,6 +102,22 @@ jobs:
           fi
           bash packaging/smoke.sh "$archive"
 
+      - name: Smoke single file
+        run: |
+          bin=""
+          for f in dist/vRain-*-windows-x64.exe dist/vRain-*-linux-x64 dist/vRain-*-linux-arm64 dist/vRain-*-macos-arm64.dmg dist/vRain-*-macos-x64.dmg; do
+            if [ -f "$f" ]; then
+              bin=$f
+              break
+            fi
+          done
+          if [ -z "$bin" ]; then
+            echo "single-file package missing" >&2
+            ls -la dist || true
+            exit 1
+          fi
+          bash packaging/smoke-binary.sh "$bin"
+
       - uses: actions/upload-artifact@v4
         with:
           name: vRain-Web-${{ matrix.platform }}
@@ -102,6 +126,10 @@ jobs:
           path: |
             dist/*.tar.gz
             dist/*.zip
+            dist/*.exe
+            dist/*.dmg
+            dist/vRain-*-linux-x64
+            dist/vRain-*-linux-arm64
 
   release:
     name: release
@@ -122,5 +150,13 @@ jobs:
           files: |
             dist/**/*.tar.gz
             dist/**/*.zip
+            dist/**/*.exe
+            dist/**/*.dmg
+            dist/**/vRain-*-linux-x64
+            dist/**/vRain-*-linux-arm64
             dist/*.tar.gz
             dist/*.zip
+            dist/*.exe
+            dist/*.dmg
+            dist/vRain-*-linux-x64
+            dist/vRain-*-linux-arm64

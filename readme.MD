@@ -55,48 +55,58 @@ vRain（兀雨）是一个 Perl 工具链，可将中文文本生成为古籍刻
 - **回退字体加粗**：正文中回退到非主字体的字符可自动叠加描边模拟加粗效果
 - **自动生成目录**：根据文本序号自动生成PDF目录，如第x回、卷x
 - **特殊标记系统**：书名波浪线、圆角方框、圆形框、圈注/点注/线注、字体缩放等
-- **PDF 压缩**：可选用 Ghostscript 对输出 PDF 进行压缩
+- **PDF 压缩**：`-c` 使用 PDF::Builder 自带的 Flate 压缩，不必安装 Ghostscript
 - **保留字符**：'@'代表空格，'【】'内代表双排批注文字，'%'代表换叶符，'$'代表换页符（半叶），'&'代表下行文字居叶末，文本行首'S+数字'代表整段缩几个字符（需indentxt脚本做预处理）,文本行首'T'代表段首字顶一格，'《》'代表左侧波浪线，'〔〕'代表圆角方框，'〈〉'代表圆形框，'（）'代表字体大小缩放，'｛｝'代表正文右侧圈注，'＜＞'代表正文右侧点注，'［］'代表正文右侧线注
 
 
 ## 下载即用
 
-Windows、macOS、Linux 各有一份压缩包。解压后直接执行，浏览器会打开本机页面。不必另外安装 Perl、字体或 ImageMagick。
+每个系统一个文件。下载后双击，本机浏览器会打开页面。不必解压，不必另装 Perl、字体、ImageMagick 或 Ghostscript。
 
-软件包自带一份可移动的 Perl：Linux 与 macOS 使用 [relocatable-perl](https://github.com/skaji/relocatable-perl) 5.42，Windows 使用 [Strawberry Perl](https://github.com/StrawberryPerl/Perl-Dist-Strawberry) portable。`web/server.pl` 只用 Perl 核心模块听 `127.0.0.1:8787`（端口被占用时会往后试 20 个），通过网页收集书籍、书叶、字体和 `book.cfg` 里的设定，再调用原来的 `vrain.pl` 排版。排版引擎没有改写。`Font::FreeType` 在打包时静态链接 FreeType 2.13，因此不依赖系统里的 libfreetype。书叶背景 JPG 已经放进软件包；只有执行 `canvas/*.pl` 重绘背景时才需要 ImageMagick。PDF 压缩需要系统上的 Ghostscript，没有时仍可生成 PDF。命令行参数与原来相同。
+| 系统 | 文件 |
+|------|------|
+| Windows x64 | `vRain-*-windows-x64.exe` |
+| macOS Apple 芯片 | `vRain-*-macos-arm64.dmg` |
+| macOS Intel | `vRain-*-macos-x64.dmg` |
+| Linux x64 | `vRain-*-linux-x64` |
 
-GitHub Actions 在 `ubuntu-24.04`、`windows-latest`、`macos-15`（Apple 芯片）和 `macos-15-intel` 上构建并用 `books/sample` 做烟雾测试，产物可在该次执行的 Artifacts 下载。推送 `v*` 标签时，四个软件包会挂到对应的 GitHub Release。Fork 之后若没有看到执行记录，到仓库的 Actions 页启用 Actions，第一次执行若被暂停，核准后才会开始。
+程序自带一份可移动的 Perl：Linux 与 macOS 使用 [relocatable-perl](https://github.com/skaji/relocatable-perl) 5.42，Windows 使用 [Strawberry Perl](https://github.com/StrawberryPerl/Perl-Dist-Strawberry) portable。外面是一个很小的启动程序：第一次运行时把运行环境解压到本机缓存（按内容校验），之后再次打开不再解压。`web/server.pl` 只用 Perl 核心模块听 `127.0.0.1:8787`（端口被占用时会往后试 20 个），通过网页收集书籍、书叶、字体和 `book.cfg` 里的设定，再调用原来的 `vrain.pl` 排版。排版引擎没有改写。`Font::FreeType` 在打包时静态链接 FreeType 2.13，因此不依赖系统里的 libfreetype。书叶背景 JPG 已经放进软件包；只有从源代码执行 `canvas/*.pl` 重绘背景时才需要 ImageMagick。PDF 压缩（`-c`）由 PDF::Builder 的 Flate 完成：压缩页面内容，不降低书叶图片质量。网页右上角的「退出」会关掉本机服务。
+
+GitHub Actions 在 `ubuntu-24.04`、`windows-latest`、`macos-15`（Apple 芯片）和 `macos-15-intel` 上构建，并用 `books/sample` 做烟雾测试。产物在该次执行的 Artifacts。推送 `v*` 标签时，单文件和目录包都会挂到对应的 GitHub Release。Fork 之后若没有看到执行记录，到仓库的 Actions 页启用 Actions，第一次执行若被暂停，核准后才会开始。
 
 ### Windows
 
-下载 `vRain-Web-*-windows-x64.zip`，解压，双击 `START.bat`。程序未签名，SmartScreen 若拦截，选择「仍要运行」。命令行：
-
-```bat
-vrain.bat -b sample -f 1 -t 1 -z 1
-```
+双击 `vRain-*-windows-x64.exe`。窗口不会闪一下控制台。没有购买代码签名证书时，SmartScreen 会提示「Windows 已保护你的电脑」。点「更多信息」，再点「仍要运行」。这是系统对未签名程序的提示，不必打开终端。
 
 ### macOS
 
-Apple 芯片下载 `darwin-arm64`，Intel 下载 `darwin-x64`。
-
-```bash
-tar -xzf vRain-Web-*-darwin-arm64.tar.gz
-cd vRain-Web-darwin-arm64
-xattr -dr com.apple.quarantine .
-./start.sh
-```
-
-也可以双击 `start.command`。程序未签名，Gatekeeper 会拦截从网络下载的文件；上面的 `xattr` 会清掉隔离标记，或在 Finder 里对 `start.command` 按右键选「打开」。
+打开 dmg，双击里面的 `vRain.app`。磁盘映像里的 app 已做 ad-hoc 签名。没有 Apple 公证证书时，从浏览器下载的文件第一次打开，系统仍可能说「无法打开，因为无法验证开发者」或「已损坏」。在 Finder 里对 `vRain.app` 按住 Control 再点（或按右键），选择「打开」，在对话框里再确认一次。之后这一份可以直接双击。不需要打开终端。
 
 ### Linux
 
-```bash
-tar -xzf vRain-Web-*-linux-x64.tar.gz
-cd vRain-Web-linux-x64
-./start.sh
-```
+在文件管理器里打开下载到的 `vRain-*-linux-x64`。浏览器保存文件时会去掉可执行权限，这是系统限制：在文件属性里允许把它作为程序执行，然后双击。需要 glibc 2.33 或更新（Ubuntu 22.04、Debian 12 以及之后的版本）。自动构建只包含 x64；在 arm64 机器上可以执行 `bash packaging/build.sh` 自行打包。
 
-这份 x64 软件包需要 glibc 2.33 或更新（Ubuntu 22.04、Debian 12 以及之后的版本）。实际要求写在软件包里的 `runtime/GLIBC.txt`。自动构建只包含 x64；在 arm64 机器上可以执行 `bash packaging/build.sh` 自行打包。
+### 签名证书
+
+没有证书时，上面两处系统提示会留下。把下面的 Secrets 加到仓库（Settings → Secrets and variables → Actions）后，同一次构建会自动签名；macOS 还会公证 dmg。缺任何一项时，该系统仍用未签名或 ad-hoc 签名，构建不会假装已经公证。
+
+macOS（Developer ID Application 证书，以及 App Store Connect API 密钥）：
+
+- `MACOS_CERTIFICATE_P12_BASE64`：Developer ID Application 的 `.p12` 做 base64
+- `MACOS_CERTIFICATE_PASSWORD`：这个 `.p12` 的密码
+- `APPLE_TEAM_ID`：10 位 Team ID
+- `APPLE_API_KEY_ID`：API 密钥 ID
+- `APPLE_API_ISSUER`：Issuer UUID
+- `APPLE_API_KEY`：`AuthKey_XXXX.p8` 文件内容的 base64
+
+Windows（Authenticode 代码签名证书）：
+
+- `WINDOWS_CERTIFICATE_PFX_BASE64`：`.pfx` 做 base64
+- `WINDOWS_CERTIFICATE_PASSWORD`：这个 `.pfx` 的密码
+
+### 目录包
+
+Actions 仍会附上解压即可查看文件的 `vRain-Web-*.zip` / `.tar.gz`。Windows 双击其中的 `START.bat`，macOS 双击 `start.command`，Linux 在终端执行 `./start.sh`。单文件是给直接打开用的。
 
 网页默认简体中文，可切换繁体中文和英文。可以选择或新建书籍、上传文本、字体、封面和 JPEG 书叶，调整版面后生成，并在页面上看日志、预览和下载 PDF。一次只排一本。`books/sample` 是短文范例，`books/01` 是原来的《虞初新志》示例，这两本不能从网页删除。`vrain_mr.pl` 与 `books_mr/` 仍只走命令行。
 
@@ -113,7 +123,7 @@ bash packaging/smoke.sh dist/vRain-Web-*.tar.gz
 - **PDF::Builder** — PDF 生成
 - **Font::FreeType** — 字体字形检测与度量
 - **Image::Magick** — 背景图生成（`canvas/*.pl` 指令码使用）
-- **Ghostscript** (`gs`) — PDF 压缩（`-c` 参数）
+- **PDF::Builder 的 Flate** — PDF 压缩（`-c` 参数，不必另装 Ghostscript）
 
 ## 快速开始
 
@@ -142,7 +152,7 @@ cd canvas && perl bamboo.pl -c bamboo
 |------|------|
 | `-h` | 显示帮助资讯 |
 | `-v` | 显示详细排版资讯（含字体选择、缩放因子等） |
-| `-c` | 压缩 PDF（macOS，需 Ghostscript） |
+| `-c` | 用内置 Flate 压缩 PDF，生成带 `_已压缩` 的文件 |
 | `-z <页数>` | 测试模式，仅输出指定页数，生成带 `_test` 标识的 PDF |
 | `-b <书籍ID>` | 书籍 ID，对应 `books/<ID>/` 目录 |
 | `-f <序号>` | 文本起始序号（按文件名排序后的顺序序号，非文件名数字） |

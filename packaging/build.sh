@@ -429,6 +429,36 @@ find "$STAGE/runtime" -type d -name pods -prune -exec rm -rf {} + 2>/dev/null ||
 find "$STAGE/runtime" -type f -name '*.pod' -delete 2>/dev/null || true
 rm -rf "$STAGE/runtime/perl/html" "$STAGE/runtime/strawberry/perl/html" 2>/dev/null || true
 
+slim_runtime() {
+  rt=$1
+  # Headers and test tools are only needed to compile XS modules.
+  find "$rt" -type d -name CORE -prune -exec rm -rf {} + 2>/dev/null || true
+  find "$rt" -type d \( -name Test -o -name Test2 -o -name TAP \) -prune -exec rm -rf {} + 2>/dev/null || true
+  find "$rt" -type d -path '*/Unicode/Collate' -prune -exec rm -rf {} + 2>/dev/null || true
+  find "$rt" -type f -path '*/Unicode/Collate.pm' -delete 2>/dev/null || true
+  find "$rt" -type d -path '*/unicore/To' -prune -exec rm -rf {} + 2>/dev/null || true
+  # GBK/Big5/ShiftJIS/EUC tables. The app and vrain.pl read UTF-8.
+  find "$rt" -type d \( -path '*/Encode/CN' -o -path '*/Encode/JP' -o -path '*/Encode/KR' -o -path '*/Encode/TW' \) -prune -exec rm -rf {} + 2>/dev/null || true
+  find "$rt" -type f \( -path '*/Encode/CN.pm' -o -path '*/Encode/JP.pm' -o -path '*/Encode/KR.pm' -o -path '*/Encode/TW.pm' \) -delete 2>/dev/null || true
+  # CID CMap tables are unused: books embed TrueType fonts with ttfont().
+  find "$rt" -type d -path '*/CIDFont/CMap' -prune -exec rm -rf {} + 2>/dev/null || true
+  find "$rt" -type f -path '*/bin/*' \( \
+    -name 'cpan' -o -name 'cpan.bat' -o -name 'cpanm' -o -name 'cpanm.bat' \
+    -o -name 'perldoc' -o -name 'perldoc.bat' -o -name 'prove' -o -name 'prove.bat' \
+    -o -name 'pod2html' -o -name 'pod2man' -o -name 'pod2text' -o -name 'pod2usage' \
+    -o -name 'podchecker' -o -name 'h2xs' -o -name 'h2ph' -o -name 'enc2xs' \
+    -o -name 'xsubpp' -o -name 'instmodsh' -o -name 'libnetcfg' \
+    -o -name 'perlbug' -o -name 'perlivp' -o -name 'perlthanks' \
+    -o -name 'piconv' -o -name 'pl2pm' -o -name 'ptar' -o -name 'ptardiff' \
+    -o -name 'ptargrep' -o -name 'shasum' -o -name 'splain' -o -name 'streamzip' \
+    -o -name 'zipdetails' -o -name 'corelist' -o -name 'json_pp' \
+    -o -name 'encguess' -o -name 'use-devel-checklib' -o -name 'change-shebang' \
+    \) -delete 2>/dev/null || true
+}
+
+log "slim the Perl runtime"
+slim_runtime "$STAGE/runtime"
+
 log "copy application files"
 tar -C "$ROOT" -cf - vrain.pl vrain_mr.pl LICENSE web books books_mr canvas fonts db | tar -C "$STAGE" -xf -
 find "$STAGE" -name '*.pdf' -type f -exec rm -f {} +
@@ -458,8 +488,8 @@ vRain Web $VERSION ($PLATFORM)
 兀雨便携包。解压后直接运行，不必另外安装 Perl、字体或 ImageMagick。
 
 Windows: 解压 zip，双击 START.bat。若 SmartScreen 拦截，选「仍要运行」。
-macOS:   tar -xzf 压缩包后，双击 start.command。若 Gatekeeper 拦截未签名程序：
-         xattr -dr com.apple.quarantine .
+macOS:   tar -xzf 压缩包后，双击 start.command。若系统提示无法验证开发者，
+         在 Finder 里对 start.command 按住 Control 点按，选择「打开」。
 Linux:   tar -xzf 压缩包后，在终端执行 ./start.sh
 $glibc_line
 
@@ -470,7 +500,8 @@ $glibc_line
 Windows 请改用 vrain.bat 与 perl.bat。
 
 书叶背景图已经附在包里。canvas/*.pl 重绘背景仍需要系统上的 ImageMagick，
-网页界面不依赖它。PDF 压缩（-c）需要 Ghostscript，没有时仍可生成 PDF。
+网页界面不依赖它。PDF 压缩（-c）使用 PDF::Builder 自带的 Flate，不必安装 Ghostscript。
+同一版本还会打出一个可双击的单文件（Windows .exe、macOS .dmg、Linux 可执行文件）。
 EOF
 }
 
@@ -585,3 +616,6 @@ else
   tar -C "$ROOT/dist" -czf "$ROOT/dist/${archive_base}.tar.gz" "vRain-Web-$PLATFORM"
   log "wrote dist/${archive_base}.tar.gz"
 fi
+
+export VERSION PLATFORM
+bash "$ROOT/packaging/pack-single.sh" "$ROOT/dist/vRain-Web-$PLATFORM"
